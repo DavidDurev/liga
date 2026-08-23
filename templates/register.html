@@ -4,14 +4,14 @@
 <div class="auth-box panel">
   <div style="font-family:var(--font-mono);color:var(--gold);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Регистрация</div>
   <h2>Присъедини се</h2>
-  <form method="POST">
+  <form method="POST" onsubmit="document.getElementById('reg-submit').disabled=true; document.getElementById('reg-submit').textContent='Изчакай...';">
     <label for="username">Потребителско име</label>
     <input type="text" id="username" name="username" required autofocus>
     <label for="password">Парола</label>
     <input type="password" id="password" name="password" required>
     <label for="confirm">Повтори паролата</label>
     <input type="password" id="confirm" name="confirm" required>
-    <button class="btn btn-primary" type="submit" style="width:100%;">Регистрирай се</button>
+    <button class="btn btn-primary" type="submit" id="reg-submit" style="width:100%;">Регистрирай се</button>
   </form>
   <p style="margin-top:16px;font-size:.88rem;color:var(--chalk-dim);">
     Вече имаш профил? <a href="{{ url_for('login') }}" style="color:var(--gold);">Влез</a>

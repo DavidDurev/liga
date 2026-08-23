@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 from flask import Flask, render_template, redirect, url_for, flash, request, abort
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 from flask_login import (
     LoginManager, UserMixin, login_user, logout_user,
     login_required, current_user
@@ -246,7 +247,12 @@ def register():
             user = User(username=username, is_admin=is_first_user)
             user.set_password(password)
             db.session.add(user)
-            db.session.commit()
+            try:
+                db.session.commit()
+            except IntegrityError:
+                db.session.rollback()
+                flash("Това потребителско име вече е заето — опитай с друго или влез в профила си.", "danger")
+                return render_template("register.html")
             flash(
                 "Регистрацията е успешна! Вече си администратор на лигата."
                 if is_first_user else "Регистрацията е успешна, влез в профила си.",
