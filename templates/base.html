@@ -11,7 +11,7 @@
     <div class="navbar-inner">
       <a class="brand" href="{{ url_for('index') if current_user.is_authenticated else url_for('login') }}">
         <span class="brand-badge">СФЛ</span>
-        Селска Футболна Лига
+        Селска Лига
       </a>
       {% if current_user.is_authenticated %}
       <div class="nav-links">
