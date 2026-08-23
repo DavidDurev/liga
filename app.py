@@ -18,7 +18,8 @@
 """
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from flask import Flask, render_template, redirect, url_for, flash, request, abort
 from flask_sqlalchemy import SQLAlchemy
@@ -38,6 +39,17 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
+# Всички часове (краен срок, начален час на мач) се третират като българско време,
+# независимо къде физически работи сървърът (напр. PythonAnywhere е на UTC).
+TZ = ZoneInfo("Europe/Sofia")
+PREDICTION_CUTOFF = timedelta(minutes=5)
+
+
+def now_local():
+    """Текущото време по българско часово време, като 'наивен' datetime (без tzinfo),
+    за да може директно да се сравнява с часовете, въведени от админа."""
+    return datetime.now(TZ).replace(tzinfo=None)
+
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message = "Моля, влезте в профила си, за да продължите."
@@ -55,7 +67,9 @@ class User(db.Model, UserMixin):
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    predictions = db.relationship("Prediction", backref="user", lazy=True)
+    predictions = db.relationship(
+        "Prediction", backref="user", lazy=True, cascade="all, delete-orphan"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -67,16 +81,12 @@ class User(db.Model, UserMixin):
 class Week(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     number = db.Column(db.Integer, unique=True, nullable=False)
-    deadline = db.Column(db.DateTime, nullable=False)
     is_closed = db.Column(db.Boolean, default=False, nullable=False)  # ръчно затворена от админ
 
     matches = db.relationship(
         "Match", backref="week", lazy=True,
         order_by="Match.kickoff_time", cascade="all, delete-orphan"
     )
-
-    def is_open_for_predictions(self):
-        return (not self.is_closed) and datetime.utcnow() < self.deadline
 
     def all_matches_finished(self):
         return len(self.matches) > 0 and all(m.is_finished() for m in self.matches)
@@ -88,7 +98,7 @@ class Match(db.Model):
 
     home_team = db.Column(db.String(80), nullable=False)
     away_team = db.Column(db.String(80), nullable=False)
-    kickoff_time = db.Column(db.DateTime, nullable=True)
+    kickoff_time = db.Column(db.DateTime, nullable=False)
 
     # Коефициенти от betano.bg
     odd_1 = db.Column(db.Float, nullable=False)
@@ -105,6 +115,14 @@ class Match(db.Model):
 
     def is_finished(self):
         return self.actual_home is not None and self.actual_away is not None
+
+    def prediction_deadline(self):
+        return self.kickoff_time - PREDICTION_CUTOFF
+
+    def is_open_for_prediction(self):
+        if self.week.is_closed or self.is_finished():
+            return False
+        return now_local() < self.prediction_deadline()
 
     def actual_sign(self):
         if not self.is_finished():
@@ -173,10 +191,9 @@ def admin_required(view):
 # ---------------------------------------------------------------------------
 
 def current_week():
-    """Най-новата седмица, която все още приема прогнози; иначе последната създадена."""
+    """Най-новата седмица, която не е затворена ръчно; иначе последната създадена."""
     open_week = (
         Week.query.filter_by(is_closed=False)
-        .filter(Week.deadline >= datetime.utcnow())
         .order_by(Week.number.desc())
         .first()
     )
@@ -202,7 +219,7 @@ def standings(week_id=None):
 
 @app.context_processor
 def inject_globals():
-    return {"now": datetime.utcnow()}
+    return {"now": now_local()}
 
 
 # ---------------------------------------------------------------------------
@@ -286,23 +303,25 @@ def predict(week_id):
     week = db.session.get(Week, week_id)
     if not week:
         abort(404)
-    if not week.is_open_for_predictions():
-        flash("Крайният срок за прогнози на тази седмица е изтекъл.", "danger")
-        return redirect(url_for("index"))
 
+    saved, skipped = 0, 0
     for match in week.matches:
         h_raw = request.form.get(f"home_{match.id}")
         a_raw = request.form.get(f"away_{match.id}")
         if h_raw is None or a_raw is None or h_raw == "" or a_raw == "":
-            flash("Трябва да прогнозираш точен резултат за всичките 5 мача.", "danger")
-            return redirect(url_for("index"))
+            continue  # този мач не е бил в отворената форма (или е пропуснат нарочно)
+
+        if not match.is_open_for_prediction():
+            skipped += 1
+            continue
+
         try:
             h, a = int(h_raw), int(a_raw)
             if h < 0 or a < 0:
                 raise ValueError
         except ValueError:
-            flash("Резултатите трябва да са неотрицателни цели числа.", "danger")
-            return redirect(url_for("index"))
+            flash(f"Невалиден резултат за {match.label()}.", "danger")
+            continue
 
         pred = Prediction.query.filter_by(user_id=current_user.id, match_id=match.id).first()
         if pred is None:
@@ -310,9 +329,16 @@ def predict(week_id):
             db.session.add(pred)
         pred.pred_home = h
         pred.pred_away = a
+        saved += 1
 
     db.session.commit()
-    flash("Прогнозите ти за седмицата са запазени!", "success")
+
+    if saved:
+        flash(f"Запазени прогнози: {saved}.", "success")
+    if skipped:
+        flash(f"{skipped} мач(а) вече не приемат прогнози (до 5 мин. преди начален час) и не бяха запазени.", "warning")
+    if not saved and not skipped:
+        flash("Няма подадени промени.", "info")
     return redirect(url_for("index"))
 
 
@@ -360,14 +386,8 @@ def admin_dashboard():
 def admin_new_week():
     last = Week.query.order_by(Week.number.desc()).first()
     next_number = (last.number + 1) if last else 1
-    deadline_raw = request.form.get("deadline")
-    try:
-        deadline = datetime.strptime(deadline_raw, "%Y-%m-%dT%H:%M")
-    except (ValueError, TypeError):
-        flash("Невалидна крайна дата/час за прогнози.", "danger")
-        return redirect(url_for("admin_dashboard"))
 
-    week = Week(number=next_number, deadline=deadline)
+    week = Week(number=next_number)
     db.session.add(week)
     db.session.commit()
     flash(f"Седмица {next_number} е създадена.", "success")
@@ -401,12 +421,11 @@ def admin_add_match(week_id):
         odd_1 = float(request.form["odd_1"])
         odd_x = float(request.form["odd_x"])
         odd_2 = float(request.form["odd_2"])
-        kickoff_raw = request.form.get("kickoff_time")
-        kickoff = datetime.strptime(kickoff_raw, "%Y-%m-%dT%H:%M") if kickoff_raw else None
+        kickoff = datetime.strptime(request.form["kickoff_time"], "%Y-%m-%dT%H:%M")
         if not home or not away or odd_1 <= 0 or odd_x <= 0 or odd_2 <= 0:
             raise ValueError
     except (KeyError, ValueError):
-        flash("Провери въведените данни за мача (отбори и коефициенти от betano.bg).", "danger")
+        flash("Провери въведените данни за мача (начален час, отбори, коефициенти от betano.bg).", "danger")
         return redirect(url_for("admin_week", week_id=week.id))
 
     match = Match(
@@ -461,6 +480,34 @@ def admin_set_result(match_id):
     return redirect(url_for("admin_week", week_id=match.week_id))
 
 
+@app.route("/admin/users")
+@login_required
+@admin_required
+def admin_users():
+    users = User.query.order_by(User.username.asc()).all()
+    return render_template("admin/users.html", users=users)
+
+
+@app.route("/admin/user/<int:user_id>/delete", methods=["POST"])
+@login_required
+@admin_required
+def admin_delete_user(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    if user.id == current_user.id:
+        flash("Не можеш да изтриеш собствения си профил.", "danger")
+        return redirect(url_for("admin_users"))
+    if user.is_admin and User.query.filter_by(is_admin=True).count() <= 1:
+        flash("Трябва да остане поне един администратор.", "danger")
+        return redirect(url_for("admin_users"))
+
+    db.session.delete(user)
+    db.session.commit()
+    flash(f"Потребителят {user.username} е изтрит заедно с прогнозите му.", "info")
+    return redirect(url_for("admin_users"))
+
+
 @app.route("/admin/week/<int:week_id>/toggle_close", methods=["POST"])
 @login_required
 @admin_required
@@ -497,4 +544,7 @@ with app.app_context():
     db.create_all()
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # host="0.0.0.0" -> сайтът приема връзки от всяка мрежова карта, не само локално.
+    # debug=False    -> задължително, когато сайтът е достъпен от интернет (debug режимът
+    #                    позволява изпълнение на код отдалечено при грешка).
+    app.run(host="0.0.0.0", port=5000, debug=False)

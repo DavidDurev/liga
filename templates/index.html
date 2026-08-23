@@ -12,10 +12,9 @@
 <div class="page-head">
   <div class="eyebrow">Седмица {{ week.number }}</div>
   <h1>5 мача, 5 прогнози</h1>
-  {% if week.is_open_for_predictions() %}
-    <p class="lead">Краен срок за прогнози: <strong>{{ week.deadline.strftime('%d.%m.%Y %H:%M') }}</strong>. Можеш да променяш прогнозите си до срока.</p>
-  {% else %}
-    <p class="lead"><span class="tag closed">Затворена за прогнози</span> — срокът е изтекъл{% if week.is_closed %} (затворена ръчно от админ){% endif %}.</p>
+  <p class="lead">Прогнозите за всеки мач се приемат до <strong>5 минути преди началния му час</strong> — можеш да ги променяш дотогава.</p>
+  {% if week.is_closed %}
+    <p><span class="tag closed">Седмицата е затворена ръчно от админ</span></p>
   {% endif %}
 </div>
 
@@ -27,14 +26,20 @@
 {% else %}
 
 <form method="POST" action="{{ url_for('predict', week_id=week.id) }}">
+  {% set open_count = namespace(n=0) %}
   {% for match in week.matches %}
     {% set pred = existing.get(match.id) %}
+    {% set is_open = match.is_open_for_prediction() %}
+    {% if is_open %}{% set open_count.n = open_count.n + 1 %}{% endif %}
     <div class="ticket">
       <div class="ticket-main">
         <div class="match-teams">{{ match.home_team }} <span style="color:#8a8571;">vs</span> {{ match.away_team }}</div>
         <div class="match-meta">
-          {% if match.kickoff_time %}начален час: {{ match.kickoff_time.strftime('%d.%m %H:%M') }}{% else %}начален час: няма данни{% endif %}
-          {% if match.is_finished() %} · краен резултат: {{ match.actual_home }}:{{ match.actual_away }}{% endif %}
+          начален час: {{ match.kickoff_time.strftime('%d.%m %H:%M') }}
+          {% if match.is_finished() %} · краен резултат: {{ match.actual_home }}:{{ match.actual_away }}
+          {% elif is_open %} · <span style="color:#3c6e4c;">прогнози до {{ match.prediction_deadline().strftime('%d.%m %H:%M') }}</span>
+          {% else %} · <span style="color:var(--brick);">прогнозите са затворени</span>
+          {% endif %}
         </div>
         <div class="odds-row">
           <span class="odds-chip">1&nbsp;· {{ '%.2f'|format(match.odd_1) }}</span>
@@ -42,12 +47,12 @@
           <span class="odds-chip">2&nbsp;· {{ '%.2f'|format(match.odd_2) }}</span>
         </div>
 
-        {% if week.is_open_for_predictions() %}
+        {% if is_open %}
           <div class="score-input-row">
             <span class="vs-team">{{ match.home_team }}</span>
-            <input type="number" min="0" name="home_{{ match.id }}" value="{{ pred.pred_home if pred is not none else '' }}" required>
+            <input type="number" min="0" name="home_{{ match.id }}" value="{{ pred.pred_home if pred is not none else '' }}">
             <span class="dash">:</span>
-            <input type="number" min="0" name="away_{{ match.id }}" value="{{ pred.pred_away if pred is not none else '' }}" required>
+            <input type="number" min="0" name="away_{{ match.id }}" value="{{ pred.pred_away if pred is not none else '' }}">
             <span class="vs-team">{{ match.away_team }}</span>
           </div>
         {% else %}
@@ -68,7 +73,7 @@
     </div>
   {% endfor %}
 
-  {% if week.is_open_for_predictions() %}
+  {% if open_count.n > 0 %}
     <button class="btn btn-primary" type="submit">Запази прогнозите</button>
   {% endif %}
 </form>

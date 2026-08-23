@@ -5,12 +5,12 @@
   <div class="eyebrow">Администрация</div>
   <h1>Седмица {{ week.number }}</h1>
   <p class="lead">
-    Краен срок: {{ week.deadline.strftime('%d.%m.%Y %H:%M') }} ·
-    {% if week.is_open_for_predictions() %}<span class="tag open">Приема прогнози</span>{% else %}<span class="tag closed">Затворена</span>{% endif %}
+    Всеки мач приема прогнози до 5 мин. преди началния си час ·
+    {% if week.is_closed %}<span class="tag closed">Седмицата е затворена ръчно</span>{% else %}<span class="tag open">Активна</span>{% endif %}
   </p>
   <form method="POST" action="{{ url_for('admin_toggle_close', week_id=week.id) }}" style="margin-top:10px;">
     <button class="btn btn-ghost btn-small" type="submit">
-      {{ 'Отвори отново за прогнози' if week.is_closed else 'Затвори ръчно за прогнози' }}
+      {{ 'Отвори отново седмицата' if week.is_closed else 'Затвори ръчно цялата седмица' }}
     </button>
   </form>
 </div>
@@ -29,8 +29,8 @@
         <input type="text" id="away_team" name="away_team" required>
       </div>
       <div>
-        <label for="kickoff_time">Начален час (по избор)</label>
-        <input type="datetime-local" id="kickoff_time" name="kickoff_time">
+        <label for="kickoff_time">Начален час</label>
+        <input type="datetime-local" id="kickoff_time" name="kickoff_time" required>
       </div>
     </div>
     <div class="form-row">
@@ -58,8 +58,11 @@
     <div>
       <div class="match-teams" style="color:var(--chalk);">{{ match.home_team }} <span style="color:var(--chalk-dim);">vs</span> {{ match.away_team }}</div>
       <div class="match-meta" style="color:var(--chalk-dim);">
-        {% if match.kickoff_time %}{{ match.kickoff_time.strftime('%d.%m %H:%M') }} · {% endif %}
-        коеф. 1: {{ '%.2f'|format(match.odd_1) }} · X: {{ '%.2f'|format(match.odd_x) }} · 2: {{ '%.2f'|format(match.odd_2) }}
+        {{ match.kickoff_time.strftime('%d.%m %H:%M') }} ·
+        коеф. 1: {{ '%.2f'|format(match.odd_1) }} · X: {{ '%.2f'|format(match.odd_x) }} · 2: {{ '%.2f'|format(match.odd_2) }} ·
+        {% if match.is_finished() %}<span class="tag closed">приключил</span>
+        {% elif match.is_open_for_prediction() %}<span class="tag open">приема прогнози</span>
+        {% else %}<span class="tag closed">затворен за прогнози</span>{% endif %}
       </div>
     </div>
     <form method="POST" action="{{ url_for('admin_delete_match', match_id=match.id) }}" onsubmit="return confirm('Изтриване на мача? Прогнозите за него ще изчезнат.');">

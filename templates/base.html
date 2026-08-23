@@ -19,7 +19,8 @@
         <a href="{{ url_for('standings_view') }}" class="{{ 'active' if request.endpoint == 'standings_view' }}">Класиране</a>
         <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">Моята история</a>
         {% if current_user.is_admin %}
-        <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">Админ</a>
+        <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') and request.endpoint != 'admin_users' }}">Админ</a>
+        <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' }}">Потребители</a>
         {% endif %}
         <span class="nav-user">{{ current_user.username }}</span>
         <a href="{{ url_for('logout') }}">Изход</a>

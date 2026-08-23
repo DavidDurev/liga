@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Админ · Потребители{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Администрация</div>
+  <h1>Потребители</h1>
+  <p class="lead"><a href="{{ url_for('admin_dashboard') }}" style="color:var(--gold);">← Обратно към седмиците</a></p>
+</div>
+
+<div class="panel">
+  <table class="scoreboard">
+    <thead>
+      <tr>
+        <th>Потребител</th>
+        <th>Роля</th>
+        <th>Регистриран на</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr>
+        <td>{{ u.username }}{% if u.id == current_user.id %} <span class="tag open">ти</span>{% endif %}</td>
+        <td>{{ 'Админ' if u.is_admin else 'Играч' }}</td>
+        <td>{{ u.created_at.strftime('%d.%m.%Y') if u.created_at else '—' }}</td>
+        <td>
+          {% if u.id != current_user.id %}
+          <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Изтриване на {{ u.username }} заедно с всичките му прогнози? Действието е необратимо.');">
+            <button class="btn btn-danger btn-small" type="submit">Изтрий</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
