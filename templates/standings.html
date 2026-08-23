@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Класиране · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Таблица</div>
+  <h1>Класиране</h1>
+</div>
+
+<div class="week-tabs">
+  <a href="{{ url_for('standings_view') }}" class="{{ 'active' if not selected_week }}">Общо класиране</a>
+  {% for w in weeks %}
+    <a href="{{ url_for('standings_view', week=w.id) }}" class="{{ 'active' if selected_week and selected_week.id == w.id }}">Седмица {{ w.number }}</a>
+  {% endfor %}
+</div>
+
+<div class="panel">
+  <table class="scoreboard">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Играч</th>
+        <th>Мачове</th>
+        <th>Точки</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set rows = weekly if selected_week else overall %}
+      {% for row in rows %}
+      <tr>
+        <td><span class="rank-badge {{ 'gold' if loop.index == 1 }}">{{ loop.index }}</span></td>
+        <td>{{ row.user.username }}</td>
+        <td>{{ row.played }}</td>
+        <td>{{ row.total }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="color:var(--chalk-dim);">Няма данни още.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

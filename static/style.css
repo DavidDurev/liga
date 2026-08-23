@@ -1,0 +1,396 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+
+:root {
+  --pitch-dark: #14271e;
+  --pitch: #1e3f2b;
+  --pitch-line: #3c6e4c;
+  --pitch-line-soft: #2c5238;
+  --chalk: #f2ede0;
+  --chalk-dim: #cfc9b8;
+  --gold: #d9a441;
+  --gold-dim: #8a6a2c;
+  --brick: #c1503a;
+  --ink: #10201a;
+  --radius: 3px;
+  --font-display: 'Oswald', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 0%, var(--pitch) 0%, var(--pitch-dark) 70%);
+  background-attachment: fixed;
+  color: var(--chalk);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+/* subtle pitch stripes on the background */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: repeating-linear-gradient(
+    100deg,
+    rgba(255,255,255,0.015) 0px,
+    rgba(255,255,255,0.015) 60px,
+    transparent 60px,
+    transparent 120px
+  );
+  pointer-events: none;
+}
+
+a { color: inherit; }
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 0.5em 0;
+  font-weight: 600;
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* ---------- Nav ---------- */
+.navbar {
+  border-bottom: 1px solid var(--pitch-line-soft);
+  background: rgba(20, 39, 30, 0.85);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.navbar-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--chalk);
+}
+.brand-badge {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--gold);
+  font-weight: 700;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.nav-links a {
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  font-size: 0.92rem;
+  color: var(--chalk-dim);
+  font-weight: 500;
+}
+.nav-links a:hover { color: var(--chalk); background: rgba(255,255,255,0.05); }
+.nav-links a.active { color: var(--ink); background: var(--gold); }
+.nav-user {
+  font-size: 0.85rem;
+  color: var(--chalk-dim);
+  margin-right: 4px;
+}
+
+/* ---------- Flash messages ---------- */
+.flashes { list-style: none; margin: 20px 0 0; padding: 0; }
+.flash {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+  border-left: 4px solid var(--gold);
+  background: rgba(217, 164, 65, 0.12);
+}
+.flash-danger { border-color: var(--brick); background: rgba(193, 80, 58, 0.15); }
+.flash-success { border-color: #6fae6f; background: rgba(111, 174, 111, 0.14); }
+.flash-info { border-color: var(--pitch-line); background: rgba(60, 110, 76, 0.2); }
+.flash-warning { border-color: var(--gold); background: rgba(217, 164, 65, 0.14); }
+
+/* ---------- Page heading ---------- */
+.page-head { padding: 34px 0 18px; }
+.page-head .eyebrow {
+  font-family: var(--font-mono);
+  color: var(--gold);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.page-head p.lead { color: var(--chalk-dim); max-width: 60ch; }
+
+/* ---------- Cards / panels ---------- */
+.panel {
+  background: rgba(0,0,0,0.16);
+  border: 1px solid var(--pitch-line-soft);
+  border-radius: 6px;
+  padding: 22px;
+  margin-bottom: 20px;
+}
+
+/* ---------- Betting-ticket match card ---------- */
+.ticket {
+  background: var(--chalk);
+  color: var(--ink);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+}
+.ticket-main {
+  flex: 1;
+  padding: 16px 18px;
+}
+.ticket-stub {
+  width: 92px;
+  flex-shrink: 0;
+  background: var(--gold);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  position: relative;
+  border-left: 2px dashed rgba(16,32,26,0.35);
+}
+.ticket-stub span { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.8; }
+.ticket-stub .odd-val { font-size: 1.05rem; margin-top: 2px; }
+/* perforation notches */
+.ticket-stub::before, .ticket-stub::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--pitch-dark);
+}
+.ticket-stub::before { top: -8px; }
+.ticket-stub::after { bottom: -8px; }
+
+.match-teams {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+}
+.match-meta {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  color: #5b5b52;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.odds-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+.odds-chip {
+  border: 1px solid rgba(16,32,26,0.2);
+  border-radius: 3px;
+  padding: 3px 8px;
+  color: #43443a;
+}
+
+.score-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.score-input-row input[type="number"] {
+  width: 54px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  padding: 6px 4px;
+  border: 1px solid #c9c3ae;
+  border-radius: 3px;
+  background: #fbfaf5;
+  color: var(--ink);
+}
+.score-input-row .dash { font-family: var(--font-mono); font-weight: 700; color: #8a8571; }
+.score-input-row .vs-team { font-size: 0.8rem; color: #5b5b52; width: 74px; }
+
+.saved-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.saved-score .pts {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--ink);
+  color: var(--gold);
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-block;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.88rem;
+  padding: 10px 20px;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 600;
+}
+.btn-primary { background: var(--gold); color: var(--ink); }
+.btn-primary:hover { background: #e6b658; }
+.btn-ghost { background: transparent; color: var(--chalk); border: 1px solid var(--pitch-line); }
+.btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+.btn-danger { background: var(--brick); color: var(--chalk); }
+.btn-small { padding: 6px 12px; font-size: 0.76rem; }
+
+/* ---------- Forms ---------- */
+label { display: block; font-size: 0.82rem; color: var(--chalk-dim); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+input[type="text"], input[type="password"], input[type="number"], input[type="datetime-local"] {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--pitch-line);
+  background: rgba(255,255,255,0.04);
+  color: var(--chalk);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+}
+input:focus { outline: 2px solid var(--gold); outline-offset: 1px; }
+.form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.form-row > * { flex: 1; min-width: 120px; }
+.auth-box { max-width: 380px; margin: 60px auto; }
+
+/* ---------- Scoreboard / standings table ---------- */
+.scoreboard {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+}
+.scoreboard th {
+  text-align: left;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+  color: var(--gold);
+  padding: 10px 12px;
+  border-bottom: 2px solid var(--pitch-line);
+}
+.scoreboard td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pitch-line-soft);
+  font-size: 0.92rem;
+}
+.scoreboard tr:first-child td { font-weight: 700; }
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--pitch-line);
+  font-size: 0.8rem;
+}
+.rank-badge.gold { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+.week-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.week-tabs a {
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--chalk-dim);
+  border: 1px solid var(--pitch-line);
+}
+.week-tabs a.active { background: var(--gold); color: var(--ink); border-color: var(--gold); }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--chalk-dim);
+}
+.empty-state .big { font-family: var(--font-display); font-size: 1.3rem; color: var(--chalk); margin-bottom: 8px; text-transform: uppercase; }
+
+.tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--pitch-line);
+  color: var(--chalk-dim);
+}
+.tag.open { border-color: #6fae6f; color: #a9d6a9; }
+.tag.closed { border-color: var(--brick); color: #e6a396; }
+
+footer.site-footer {
+  text-align: center;
+  color: var(--chalk-dim);
+  font-size: 0.78rem;
+  padding: 40px 0 10px;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 560px) {
+  .ticket { flex-direction: column; }
+  .ticket-stub { width: 100%; flex-direction: row; gap: 8px; padding: 8px; border-left: none; border-top: 2px dashed rgba(16,32,26,0.35); }
+  .ticket-stub::before, .ticket-stub::after { left: 50%; top: -8px; transform: translateX(-50%); }
+  .ticket-stub::after { top: auto; bottom: -8px; }
+}

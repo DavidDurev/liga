@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Селска Футболна Лига{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" href="{{ url_for('index') if current_user.is_authenticated else url_for('login') }}">
+        <span class="brand-badge">СФЛ</span>
+        Селска Футболна Лига
+      </a>
+      {% if current_user.is_authenticated %}
+      <div class="nav-links">
+        <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Прогнози</a>
+        <a href="{{ url_for('standings_view') }}" class="{{ 'active' if request.endpoint == 'standings_view' }}">Класиране</a>
+        <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">Моята история</a>
+        {% if current_user.is_admin %}
+        <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">Админ</a>
+        {% endif %}
+        <span class="nav-user">{{ current_user.username }}</span>
+        <a href="{{ url_for('logout') }}">Изход</a>
+      </div>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <ul class="flashes">
+        {% for category, message in messages %}
+          <li class="flash flash-{{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
+    <footer class="site-footer">Селска Футболна Лига · точки = коефициент × (1 за познат изход / 3 за точен резултат)</footer>
+  </div>
+</body>
+</html>

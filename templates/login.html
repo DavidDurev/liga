@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Вход · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="auth-box panel">
+  <div class="eyebrow" style="font-family:var(--font-mono);color:var(--gold);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Вход</div>
+  <h2>Влез в лигата</h2>
+  <form method="POST">
+    <label for="username">Потребителско име</label>
+    <input type="text" id="username" name="username" required autofocus>
+    <label for="password">Парола</label>
+    <input type="password" id="password" name="password" required>
+    <button class="btn btn-primary" type="submit" style="width:100%;">Влез</button>
+  </form>
+  <p style="margin-top:16px;font-size:.88rem;color:var(--chalk-dim);">
+    Нямаш профил? <a href="{{ url_for('register') }}" style="color:var(--gold);">Регистрирай се</a>
+  </p>
+</div>
+{% endblock %}

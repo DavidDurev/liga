@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Моята история · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Профил</div>
+  <h1>Моята история</h1>
+</div>
+
+<div class="panel">
+  <table class="scoreboard">
+    <thead>
+      <tr>
+        <th>Седмица</th>
+        <th>Мач</th>
+        <th>Прогноза</th>
+        <th>Резултат</th>
+        <th>Точки</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pred in rows %}
+      <tr>
+        <td>{{ pred.match.week.number }}</td>
+        <td>{{ pred.match.label() }}</td>
+        <td>{{ pred.pred_home }}:{{ pred.pred_away }}</td>
+        <td>
+          {% if pred.match.is_finished() %}{{ pred.match.actual_home }}:{{ pred.match.actual_away }}{% else %}—{% endif %}
+        </td>
+        <td>{{ pred.points if pred.points is not none else '—' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="color:var(--chalk-dim);">Все още нямаш подадени прогнози.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

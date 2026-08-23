@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Админ · Седмици{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Администрация</div>
+  <h1>Седмици</h1>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Нова седмица</h3>
+  <form method="POST" action="{{ url_for('admin_new_week') }}" class="form-row">
+    <div>
+      <label for="deadline">Краен срок за прогнози</label>
+      <input type="datetime-local" id="deadline" name="deadline" required>
+    </div>
+    <div style="flex:0 0 auto;align-self:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" type="submit">Създай седмица</button>
+    </div>
+  </form>
+</div>
+
+{% if weeks %}
+<div class="panel">
+  <table class="scoreboard">
+    <thead>
+      <tr>
+        <th>Седмица</th>
+        <th>Мачове</th>
+        <th>Краен срок</th>
+        <th>Статус</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for w in weeks %}
+      <tr>
+        <td>{{ w.number }}</td>
+        <td>{{ w.matches|length }} / 5</td>
+        <td>{{ w.deadline.strftime('%d.%m.%Y %H:%M') }}</td>
+        <td>
+          {% if w.is_open_for_predictions() %}<span class="tag open">Приема прогнози</span>
+          {% else %}<span class="tag closed">Затворена</span>{% endif %}
+        </td>
+        <td><a class="btn btn-ghost btn-small" href="{{ url_for('admin_week', week_id=w.id) }}">Управлявай</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="big">Още няма седмици</div>
+  <p>Създай първата седмица отгоре, за да добавиш мачове.</p>
+</div>
+{% endif %}
+{% endblock %}
