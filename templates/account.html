@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Профил · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Профил</div>
+  <h1>{{ current_user.username }}</h1>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Смяна на потребителско име</h3>
+  <form method="POST" action="{{ url_for('account_change_username') }}">
+    <label for="new_username">Ново потребителско име</label>
+    <input type="text" id="new_username" name="new_username" required>
+    <label for="current_password_u">Текуща парола</label>
+    <input type="password" id="current_password_u" name="current_password" required>
+    <button class="btn btn-primary" type="submit">Смени името</button>
+  </form>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Смяна на парола</h3>
+  <form method="POST" action="{{ url_for('account_change_password') }}">
+    <label for="current_password_p">Текуща парола</label>
+    <input type="password" id="current_password_p" name="current_password" required>
+    <label for="new_password">Нова парола</label>
+    <input type="password" id="new_password" name="new_password" required>
+    <label for="confirm_password">Повтори новата парола</label>
+    <input type="password" id="confirm_password" name="confirm_password" required>
+    <button class="btn btn-primary" type="submit">Смени паролата</button>
+  </form>
+</div>
+{% endblock %}

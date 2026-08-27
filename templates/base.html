@@ -22,6 +22,7 @@
         <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') and request.endpoint != 'admin_users' }}">Админ</a>
         <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' }}">Потребители</a>
         {% endif %}
+        <a href="{{ url_for('account') }}" class="{{ 'active' if request.endpoint == 'account' }}">Профил</a>
         <span class="nav-user">{{ current_user.username }}</span>
         <a href="{{ url_for('logout') }}">Изход</a>
       </div>

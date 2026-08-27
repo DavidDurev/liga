@@ -24,8 +24,11 @@
         <td>{{ 'Админ' if u.is_admin else 'Играч' }}</td>
         <td>{{ u.created_at.strftime('%d.%m.%Y') if u.created_at else '—' }}</td>
         <td>
+          <form method="POST" action="{{ url_for('admin_reset_password', user_id=u.id) }}" onsubmit="return confirm('Да генерирам нова случайна парола за {{ u.username }}? Старата спира да работи веднага.');" style="display:inline;">
+            <button class="btn btn-ghost btn-small" type="submit">Ресет парола</button>
+          </form>
           {% if u.id != current_user.id %}
-          <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Изтриване на {{ u.username }} заедно с всичките му прогнози? Действието е необратимо.');">
+          <form method="POST" action="{{ url_for('admin_delete_user', user_id=u.id) }}" onsubmit="return confirm('Изтриване на {{ u.username }} заедно с всичките му прогнози? Действието е необратимо.');" style="display:inline;">
             <button class="btn btn-danger btn-small" type="submit">Изтрий</button>
           </form>
           {% endif %}

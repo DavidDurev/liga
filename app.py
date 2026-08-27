@@ -18,6 +18,8 @@
 """
 
 import os
+import secrets
+import string
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -361,7 +363,6 @@ def standings_view():
         weekly=weekly, selected_week=selected_week
     )
 
-
 @app.route("/history")
 @login_required
 def history():
@@ -373,7 +374,55 @@ def history():
     )
     return render_template("history.html", rows=rows)
 
+@app.route("/account")
+@login_required
+def account():
+    return render_template("account.html")
 
+
+@app.route("/account/username", methods=["POST"])
+@login_required
+def account_change_username():
+    current_password = request.form.get("current_password", "")
+    new_username = request.form.get("new_username", "").strip()
+
+    if not current_user.check_password(current_password):
+        flash("Грешна текуща парола.", "danger")
+    elif not new_username:
+        flash("Новото потребителско име не може да е празно.", "danger")
+    elif new_username == current_user.username:
+        flash("Това вече е текущото ти потребителско име.", "info")
+    elif User.query.filter_by(username=new_username).first():
+        flash("Това потребителско име вече е заето.", "danger")
+    else:
+        current_user.username = new_username
+        try:
+            db.session.commit()
+            flash("Потребителското име е сменено.", "success")
+        except IntegrityError:
+            db.session.rollback()
+            flash("Това потребителско име вече е заето.", "danger")
+    return redirect(url_for("account"))
+
+
+@app.route("/account/password", methods=["POST"])
+@login_required
+def account_change_password():
+    current_password = request.form.get("current_password", "")
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    if not current_user.check_password(current_password):
+        flash("Грешна текуща парола.", "danger")
+    elif not new_password:
+        flash("Новата парола не може да е празна.", "danger")
+    elif new_password != confirm_password:
+        flash("Новите пароли не съвпадат.", "danger")
+    else:
+        current_user.set_password(new_password)
+        db.session.commit()
+        flash("Паролата е сменена.", "success")
+    return redirect(url_for("account"))
 # ---------------------------------------------------------------------------
 # Администраторски панел
 # ---------------------------------------------------------------------------
@@ -485,6 +534,27 @@ def admin_set_result(match_id):
     flash(f"Резултатът за {match.label()} е въведен и точките са преизчислени.", "success")
     return redirect(url_for("admin_week", week_id=match.week_id))
 
+@app.route("/admin/prediction/<int:prediction_id>/points", methods=["POST"])
+@login_required
+@admin_required
+def admin_edit_points(prediction_id):
+    pred = db.session.get(Prediction, prediction_id)
+    if not pred:
+        abort(404)
+    try:
+        new_points = float(request.form["points"])
+    except (KeyError, ValueError):
+        flash("Невалидна стойност за точки.", "danger")
+        return redirect(url_for("admin_week", week_id=pred.match.week_id))
+
+    pred.points = round(new_points, 2)
+    db.session.commit()
+    flash(
+        f"Точките на {pred.user.username} за {pred.match.label()} са ръчно променени на {pred.points}. "
+        "Бележка: ако въведеш нов резултат за мача пак, точките ще се преизчислят автоматично и ще презапишат тази ръчна корекция.",
+        "success",
+    )
+    return redirect(url_for("admin_week", week_id=pred.match.week_id))
 
 @app.route("/admin/users")
 @login_required
@@ -513,6 +583,25 @@ def admin_delete_user(user_id):
     flash(f"Потребителят {user.username} е изтрит заедно с прогнозите му.", "info")
     return redirect(url_for("admin_users"))
 
+@app.route("/admin/user/<int:user_id>/reset_password", methods=["POST"])
+@login_required
+@admin_required
+def admin_reset_password(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+
+    alphabet = string.ascii_letters + string.digits
+    new_password = "".join(secrets.choice(alphabet) for _ in range(10))
+    user.set_password(new_password)
+    db.session.commit()
+    flash(
+        f"Нова парола за {user.username}: {new_password} "
+        "— копирай я и я изпрати лично на потребителя (напр. през Вайбър). "
+        "Той може после сам да си я смени от 'Профил'.",
+        "success",
+    )
+    return redirect(url_for("admin_users"))
 
 @app.route("/admin/week/<int:week_id>/toggle_close", methods=["POST"])
 @login_required
