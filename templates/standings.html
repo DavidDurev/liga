@@ -21,6 +21,7 @@
         <th>Играч</th>
         <th>Мачове</th>
         <th>Точки</th>
+        {% if current_user.is_admin and not selected_week %}<th></th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -31,11 +32,24 @@
         <td>{{ row.user.username }}</td>
         <td>{{ row.played }}</td>
         <td>{{ row.total }}</td>
+        {% if current_user.is_admin and not selected_week %}
+        <td>
+          <form method="POST" action="{{ url_for('admin_set_total', user_id=row.user.id) }}" style="display:flex;gap:6px;align-items:center;">
+            <input type="number" step="0.01" name="target_total" value="{{ row.total }}" style="width:80px;padding:4px 6px;margin:0;">
+            <button class="btn btn-ghost btn-small" type="submit">Коригирай</button>
+          </form>
+        </td>
+        {% endif %}        
       </tr>
       {% else %}
-      <tr><td colspan="4" style="color:var(--chalk-dim);">Няма данни още.</td></tr>
+      <tr><td colspan="5" style="color:var(--chalk-dim);">Няма данни още.</td></tr>
       {% endfor %}
     </tbody>
   </table>
+  {% if current_user.is_admin and not selected_week %}
+  <p style="margin-top:14px;font-size:.8rem;color:var(--chalk-dim);">
+    Корекцията тук променя общата сума директно (включва и точки от вече архивирани седмици) — записва се като разлика спрямо текущата стойност, не пипа отделните прогнози.
+  </p>
+  {% endif %}
 </div>
 {% endblock %}

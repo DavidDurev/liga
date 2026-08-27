@@ -73,7 +73,9 @@ class User(db.Model, UserMixin):
     predictions = db.relationship(
         "Prediction", backref="user", lazy=True, cascade="all, delete-orphan"
     )
-
+    adjustments = db.relationship(
+        "Adjustment", backref="user", lazy=True, cascade="all, delete-orphan"
+    )
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -94,6 +96,21 @@ class Week(db.Model):
     def all_matches_finished(self):
         return len(self.matches) > 0 and all(m.is_finished() for m in self.matches)
 
+    def has_unfinished_matches(self):
+        """За разлика от all_matches_finished(), при празна седмица (0 мача)
+        връща False — няма недовършени прогнози, значи няма какво да се изгуби."""
+        return any(not m.is_finished() for m in self.matches)
+
+class Adjustment(db.Model):
+    """Точки, добавени/извадени ръчно от админ към общата сума на потребител —
+    не са закачени за седмица или мач, затова не изчезват при изтриване на седмица.
+    Използва се за: (1) архивиране на точки от седмица преди трайното ѝ изтриване
+    (за да се пести място в базата), и (2) директна ръчна корекция от класирането."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    points = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Match(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -206,14 +223,20 @@ def current_week():
 
 
 def standings(week_id=None):
-    """Връща списък (потребител, точки) сортиран по точки низходящо."""
+    """Връща списък (потребител, точки) сортиран по точки низходящо.
+    За общото класиране (week_id=None) точките включват и ръчните корекции
+    (Adjustment) — включително архивирани точки от вече изтрити седмици."""
     query = db.session.query(User)
     result = []
     for user in query.all():
         preds = [p for p in user.predictions if p.points is not None]
         if week_id is not None:
             preds = [p for p in preds if p.match.week_id == week_id]
-        total = round(sum(p.points for p in preds), 2)
+            total = round(sum(p.points for p in preds), 2)
+        else:
+            pred_total = sum(p.points for p in preds)
+            adj_total = sum(a.points for a in user.adjustments)
+            total = round(pred_total + adj_total, 2)
         played = len(preds)
         result.append({"user": user, "total": total, "played": played})
     result.sort(key=lambda r: r["total"], reverse=True)
@@ -362,6 +385,31 @@ def standings_view():
         "standings.html", overall=overall, weeks=weeks,
         weekly=weekly, selected_week=selected_week
     )
+
+@app.route("/admin/user/<int:user_id>/set_total", methods=["POST"])
+@login_required
+@admin_required
+def admin_set_total(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+    try:
+        target_total = round(float(request.form["target_total"]), 2)
+    except (KeyError, ValueError):
+        flash("Невалидна стойност за точки.", "danger")
+        return redirect(url_for("standings_view"))
+
+    current_row = next((r for r in standings() if r["user"].id == user.id), None)
+    current_total = current_row["total"] if current_row else 0.0
+    delta = round(target_total - current_total, 2)
+
+    if delta != 0:
+        db.session.add(Adjustment(user_id=user.id, points=delta, note="Ръчна корекция от класирането"))
+        db.session.commit()
+        flash(f"Общите точки на {user.username} са коригирани на {target_total}.", "success")
+    else:
+        flash("Няма промяна — стойността вече е такава.", "info")
+    return redirect(url_for("standings_view"))
 
 @app.route("/history")
 @login_required
@@ -618,6 +666,36 @@ def admin_toggle_close(week_id):
     )
     return redirect(url_for("admin_week", week_id=week.id))
 
+@app.route("/admin/week/<int:week_id>/archive", methods=["POST"])
+@login_required
+@admin_required
+def admin_archive_week(week_id):
+    week = db.session.get(Week, week_id)
+    if not week:
+        abort(404)
+
+    totals = {}
+    for match in week.matches:
+        for pred in match.predictions:
+            if pred.points is not None:
+                totals[pred.user_id] = totals.get(pred.user_id, 0.0) + pred.points
+
+    for user_id, total in totals.items():
+        db.session.add(Adjustment(
+            user_id=user_id,
+            points=round(total, 2),
+            note=f"Архив: Седмица {week.number}",
+        ))
+
+    week_number = week.number
+    db.session.delete(week)  # cascade изтрива и мачовете, и прогнозите ѝ
+    db.session.commit()
+    flash(
+        f"Седмица {week_number} е архивирана (точките остават в общото класиране) "
+        "и изтрита от базата данни.",
+        "success",
+    )
+    return redirect(url_for("admin_dashboard"))
 
 # ---------------------------------------------------------------------------
 # Грешки
