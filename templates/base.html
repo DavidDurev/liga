@@ -16,6 +16,7 @@
       {% if current_user.is_authenticated %}
       <div class="nav-links">
         <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Прогнози</a>
+        <a href="{{ url_for('suggestions_view') }}" class="{{ 'active' if request.endpoint == 'suggestions_view' }}">Предложения</a>
         <a href="{{ url_for('standings_view') }}" class="{{ 'active' if request.endpoint == 'standings_view' }}">Класиране</a>
         <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">Моята история</a>
         {% if current_user.is_admin %}

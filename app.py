@@ -76,6 +76,13 @@ class User(db.Model, UserMixin):
     adjustments = db.relationship(
         "Adjustment", backref="user", lazy=True, cascade="all, delete-orphan"
     )
+    suggestions = db.relationship(
+        "MatchSuggestion", backref="creator", lazy=True, cascade="all, delete-orphan"
+    )
+    suggestion_votes = db.relationship(
+        "SuggestionVote", backref="voter", lazy=True, cascade="all, delete-orphan"
+    )
+
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -101,16 +108,6 @@ class Week(db.Model):
         връща False — няма недовършени прогнози, значи няма какво да се изгуби."""
         return any(not m.is_finished() for m in self.matches)
 
-class Adjustment(db.Model):
-    """Точки, добавени/извадени ръчно от админ към общата сума на потребител —
-    не са закачени за седмица или мач, затова не изчезват при изтриване на седмица.
-    Използва се за: (1) архивиране на точки от седмица преди трайното ѝ изтриване
-    (за да се пести място в базата), и (2) директна ръчна корекция от класирането."""
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    points = db.Column(db.Float, nullable=False)
-    note = db.Column(db.String(200), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Match(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -190,6 +187,48 @@ class Prediction(db.Model):
             return
         exact = (self.pred_home == m.actual_home and self.pred_away == m.actual_away)
         self.points = round((3 if exact else 1) * odd, 2)
+
+
+class Adjustment(db.Model):
+    """Точки, добавени/извадени ръчно от админ към общата сума на потребител —
+    не са закачени за седмица или мач, затова не изчезват при изтриване на седмица.
+    Използва се за: (1) архивиране на точки от седмица преди трайното ѝ изтриване
+    (за да се пести място в базата), и (2) директна ръчна корекция от класирането."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    points = db.Column(db.Float, nullable=False)
+    note = db.Column(db.String(200), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class MatchSuggestion(db.Model):
+    """Предложен от играч мач (само двата отбора) за бъдеща седмица.
+    Не е обвързан с конкретна Week — играчите предлагат преди да е ясно
+    кои точно 5 мача ще влязат. Админът преглежда класацията по гласове
+    и решава кои да въведе като истински Match (с коефициенти)."""
+    id = db.Column(db.Integer, primary_key=True)
+    home_team = db.Column(db.String(80), nullable=False)
+    away_team = db.Column(db.String(80), nullable=False)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    votes = db.relationship(
+        "SuggestionVote", backref="suggestion", lazy=True, cascade="all, delete-orphan"
+    )
+
+    def vote_count(self):
+        return len(self.votes)
+
+    def user_has_voted(self, user_id):
+        return any(v.user_id == user_id for v in self.votes)
+
+
+class SuggestionVote(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    suggestion_id = db.Column(db.Integer, db.ForeignKey("match_suggestion.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+
+    __table_args__ = (db.UniqueConstraint("suggestion_id", "user_id", name="uq_suggestion_user"),)
 
 
 @login_manager.user_loader
@@ -275,6 +314,8 @@ def register():
             try:
                 db.session.commit()
             except IntegrityError:
+                # Две почти едновременни заявки (напр. двоен клик) са се опитали
+                # да регистрират едно и също име едновременно.
                 db.session.rollback()
                 flash("Това потребителско име вече е заето — опитай с друго или влез в профила си.", "danger")
                 return render_template("register.html")
@@ -386,6 +427,7 @@ def standings_view():
         weekly=weekly, selected_week=selected_week
     )
 
+
 @app.route("/admin/user/<int:user_id>/set_total", methods=["POST"])
 @login_required
 @admin_required
@@ -411,6 +453,7 @@ def admin_set_total(user_id):
         flash("Няма промяна — стойността вече е такава.", "info")
     return redirect(url_for("standings_view"))
 
+
 @app.route("/history")
 @login_required
 def history():
@@ -421,6 +464,62 @@ def history():
         .all()
     )
     return render_template("history.html", rows=rows)
+
+
+@app.route("/suggestions")
+@login_required
+def suggestions_view():
+    suggestions = MatchSuggestion.query.all()
+    suggestions.sort(key=lambda s: s.vote_count(), reverse=True)
+    return render_template("suggestions.html", suggestions=suggestions)
+
+
+@app.route("/suggestions/new", methods=["POST"])
+@login_required
+def suggestion_new():
+    home = request.form.get("home_team", "").strip()
+    away = request.form.get("away_team", "").strip()
+    if not home or not away:
+        flash("Попълни и двата отбора.", "danger")
+    else:
+        db.session.add(MatchSuggestion(home_team=home, away_team=away, created_by_id=current_user.id))
+        db.session.commit()
+        flash("Предложението е добавено.", "success")
+    return redirect(url_for("suggestions_view"))
+
+
+@app.route("/suggestions/<int:suggestion_id>/vote", methods=["POST"])
+@login_required
+def suggestion_vote(suggestion_id):
+    suggestion = db.session.get(MatchSuggestion, suggestion_id)
+    if not suggestion:
+        abort(404)
+
+    existing_vote = SuggestionVote.query.filter_by(
+        suggestion_id=suggestion.id, user_id=current_user.id
+    ).first()
+    if existing_vote:
+        db.session.delete(existing_vote)
+    else:
+        db.session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=current_user.id))
+    db.session.commit()
+    return redirect(url_for("suggestions_view"))
+
+
+@app.route("/suggestions/<int:suggestion_id>/delete", methods=["POST"])
+@login_required
+def suggestion_delete(suggestion_id):
+    suggestion = db.session.get(MatchSuggestion, suggestion_id)
+    if not suggestion:
+        abort(404)
+    if suggestion.created_by_id != current_user.id and not current_user.is_admin:
+        abort(403)
+
+    db.session.delete(suggestion)
+    db.session.commit()
+    flash("Предложението е изтрито.", "info")
+    return redirect(url_for("suggestions_view"))
+
 
 @app.route("/account")
 @login_required
@@ -471,6 +570,8 @@ def account_change_password():
         db.session.commit()
         flash("Паролата е сменена.", "success")
     return redirect(url_for("account"))
+
+
 # ---------------------------------------------------------------------------
 # Администраторски панел
 # ---------------------------------------------------------------------------
@@ -582,27 +683,7 @@ def admin_set_result(match_id):
     flash(f"Резултатът за {match.label()} е въведен и точките са преизчислени.", "success")
     return redirect(url_for("admin_week", week_id=match.week_id))
 
-@app.route("/admin/prediction/<int:prediction_id>/points", methods=["POST"])
-@login_required
-@admin_required
-def admin_edit_points(prediction_id):
-    pred = db.session.get(Prediction, prediction_id)
-    if not pred:
-        abort(404)
-    try:
-        new_points = float(request.form["points"])
-    except (KeyError, ValueError):
-        flash("Невалидна стойност за точки.", "danger")
-        return redirect(url_for("admin_week", week_id=pred.match.week_id))
 
-    pred.points = round(new_points, 2)
-    db.session.commit()
-    flash(
-        f"Точките на {pred.user.username} за {pred.match.label()} са ръчно променени на {pred.points}. "
-        "Бележка: ако въведеш нов резултат за мача пак, точките ще се преизчислят автоматично и ще презапишат тази ръчна корекция.",
-        "success",
-    )
-    return redirect(url_for("admin_week", week_id=pred.match.week_id))
 
 @app.route("/admin/users")
 @login_required
@@ -631,6 +712,7 @@ def admin_delete_user(user_id):
     flash(f"Потребителят {user.username} е изтрит заедно с прогнозите му.", "info")
     return redirect(url_for("admin_users"))
 
+
 @app.route("/admin/user/<int:user_id>/reset_password", methods=["POST"])
 @login_required
 @admin_required
@@ -651,6 +733,7 @@ def admin_reset_password(user_id):
     )
     return redirect(url_for("admin_users"))
 
+
 @app.route("/admin/week/<int:week_id>/toggle_close", methods=["POST"])
 @login_required
 @admin_required
@@ -665,6 +748,7 @@ def admin_toggle_close(week_id):
         "info",
     )
     return redirect(url_for("admin_week", week_id=week.id))
+
 
 @app.route("/admin/week/<int:week_id>/archive", methods=["POST"])
 @login_required
@@ -696,6 +780,7 @@ def admin_archive_week(week_id):
         "success",
     )
     return redirect(url_for("admin_dashboard"))
+
 
 # ---------------------------------------------------------------------------
 # Грешки

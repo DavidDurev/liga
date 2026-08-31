@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Предложения · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Общност</div>
+  <h1>Предложения за мачове</h1>
+  <p class="lead">Предложи двойка отбори за следваща седмица и гласувай за любимите предложения на другите. Админът избира най-гласуваните, когато подготвя новата седмица.</p>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Ново предложение</h3>
+  <form method="POST" action="{{ url_for('suggestion_new') }}" class="form-row">
+    <div>
+      <label for="home_team">Домакин</label>
+      <input type="text" id="home_team" name="home_team" required>
+    </div>
+    <div>
+      <label for="away_team">Гост</label>
+      <input type="text" id="away_team" name="away_team" required>
+    </div>
+    <div style="flex:0 0 auto;align-self:flex-end;margin-bottom:14px;">
+      <button class="btn btn-primary" type="submit">Предложи</button>
+    </div>
+  </form>
+</div>
+
+{% if suggestions|length == 0 %}
+<div class="empty-state">
+  <div class="big">Още няма предложения</div>
+  <p>Бъди първият, който предлага мач за следващата седмица.</p>
+</div>
+{% else %}
+{% for s in suggestions %}
+{% set voted = s.user_has_voted(current_user.id) %}
+<div class="ticket">
+  <div class="ticket-main">
+    <div class="match-teams">{{ s.home_team }} <span style="color:#8a8571;">vs</span> {{ s.away_team }}</div>
+    <div class="match-meta">
+      предложено от {{ s.creator.username }}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+      <form method="POST" action="{{ url_for('suggestion_vote', suggestion_id=s.id) }}">
+        <button class="btn {{ 'btn-primary' if voted else 'btn-ghost' }} btn-small" type="submit">
+          {{ '✓ Гласувано' if voted else '▲ Гласувай' }} ({{ s.vote_count() }})
+        </button>
+      </form>
+      {% if s.created_by_id == current_user.id or current_user.is_admin %}
+      <form method="POST" action="{{ url_for('suggestion_delete', suggestion_id=s.id) }}" onsubmit="return confirm('Изтриване на предложението {{ s.home_team }} vs {{ s.away_team }}?');">
+        <button class="btn btn-danger btn-small" type="submit">Изтрий</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  <div class="ticket-stub">
+    <span>Гласове</span>
+    <div class="odd-val">{{ s.vote_count() }}</div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
