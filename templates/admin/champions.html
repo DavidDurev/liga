@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Админ · Шампиони{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Администрация</div>
+  <h1>Шампиони на сезона</h1>
+  <p class="lead">Краен срок за прогнози: 21 септември {{ deadline.year }}. Въведи реалните шампиони тук, след като приключат съответните първенства/турнири — точките се преизчисляват автоматично.</p>
+</div>
+
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Реални шампиони</h3>
+  <form method="POST">
+    {% for key, label in competitions %}
+    <label for="{{ key }}">{{ label }}</label>
+    <input type="text" id="{{ key }}" name="{{ key }}" value="{{ results.get(key) or '' }}" placeholder="Все още няма">
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">Запази резултатите</button>
+  </form>
+</div>
+
+{% for key, label in competitions %}
+<div class="panel">
+  <h3 style="margin-bottom:8px;">
+    {{ label }}
+    {% if results.get(key) %} — шампион: <span style="color:var(--gold);">{{ results.get(key) }}</span>{% endif %}
+  </h3>
+  <table class="scoreboard">
+    <thead><tr><th>Играч</th><th>Прогноза</th></tr></thead>
+    <tbody>
+      {% for p in by_competition.get(key, []) %}
+      <tr>
+        <td>{{ p.user.username }}</td>
+        <td>{{ p.predicted_champion }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" style="color:var(--chalk-dim);">Няма подадени прогнози.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endfor %}
+{% endblock %}

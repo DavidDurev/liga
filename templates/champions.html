@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Шампиони · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow">Специална прогноза</div>
+  <h1>Шампиони на сезона</h1>
+  <p class="lead">
+    Прогнозирай шампионите на топ 5 първенства в Европа, България и трите европейски клубни турнира.
+    По {{ champion_points }} точки за всеки познат шампион. Прогнозата е <strong>еднократна</strong> —
+    подава се наведнъж за всички категории и после не може да се променя. Краен срок:
+    <strong>21 септември {{ deadline.year }}</strong>.
+  </p>
+</div>
+
+{% if already_submitted %}
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Твоята прогноза</h3>
+  <table class="scoreboard">
+    <thead><tr><th>Турнир</th><th>Твоя прогноза</th><th>Статус</th></tr></thead>
+    <tbody>
+      {% for key, label in competitions %}
+      {% set pred = existing.get(key) %}
+      {% set correct = pred_status.get(key) %}
+      <tr>
+        <td>{{ label }}</td>
+        <td>{{ pred.predicted_champion if pred else '—' }}</td>
+        <td>
+          {% if correct is none %}<span class="tag closed">чака резултат</span>
+          {% elif correct %}<span class="tag open">+{{ champion_points }} точки</span>
+          {% else %}<span class="tag closed">грешно ({{ results.get(key) }})</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% elif is_open %}
+<div class="panel">
+  <form method="POST">
+    {% for key, label in competitions %}
+    <label for="{{ key }}">{{ label }}</label>
+    <input type="text" id="{{ key }}" name="{{ key }}" required placeholder="Име на отбора">
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">Запази прогнозата (еднократно)</button>
+  </form>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="big">Крайният срок е изтекъл</div>
+  <p>Не си подал прогноза преди 21 септември {{ deadline.year }} — за съжаление тази категория вече е затворена за теб тази година.</p>
+</div>
+{% endif %}
+{% endblock %}

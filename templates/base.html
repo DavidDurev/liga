@@ -4,19 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Селска Футболна Лига{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <nav class="navbar">
     <div class="navbar-inner">
       <a class="brand" href="{{ url_for('index') if current_user.is_authenticated else url_for('login') }}">
-        <span class="brand-badge">СФЛ</span>
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="СФЛ лого" class="brand-badge">
         Селска Футболна Лига
       </a>
       {% if current_user.is_authenticated %}
       <div class="nav-links">
         <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Прогнози</a>
         <a href="{{ url_for('suggestions_view') }}" class="{{ 'active' if request.endpoint == 'suggestions_view' }}">Предложения</a>
+        <a href="{{ url_for('champions_view') }}" class="{{ 'active' if request.endpoint == 'champions_view' }}">Шампиони</a>
         <a href="{{ url_for('standings_view') }}" class="{{ 'active' if request.endpoint == 'standings_view' }}">Класиране</a>
         <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">Моята история</a>
         {% if current_user.is_admin %}
@@ -44,7 +46,7 @@
 
     {% block content %}{% endblock %}
 
-    <footer class="site-footer">Селска Футболна Лига · точки = коефициент × (1 за познат изход / 3 за точен резултат) · Прогнозата е за редовното време на мача.</footer>
+    <footer class="site-footer">Селска Футболна Лига · точки = коефициент × (1 за познат изход / 3 за точен резултат)</footer>
   </div>
 </body>
 </html>

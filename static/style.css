@@ -95,16 +95,11 @@ h1, h2, h3, h4 {
   color: var(--chalk);
 }
 .brand-badge {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  border: 2px solid var(--gold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  color: var(--gold);
-  font-weight: 700;
+  display: block;
+  object-fit: cover;
 }
 .nav-links {
   display: flex;

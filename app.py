@@ -53,6 +53,41 @@ def now_local():
     за да може директно да се сравнява с часовете, въведени от админа."""
     return datetime.now(TZ).replace(tzinfo=None)
 
+
+# --- "Шампиони на сезона" — еднократна прогноза, отделна от седмичните мачове ---
+COMPETITIONS = [
+    ("epl", "Англия — Висша лига"),
+    ("facup", "Англия — ФА Къп"),
+    ("laliga", "Испания — Ла Лига"),
+    ("bundesliga", "Германия — Бундеслига"),
+    ("seriea", "Италия — Серия А"),
+    ("ligue1", "Франция — Лига 1"),
+    ("bulgaria", "България — Първа лига"),
+    ("ucl", "Шампионска лига"),
+    ("uel", "Лига Европа"),
+    ("uecl", "Лига на конференциите"),
+]
+CHAMPIONS_DEADLINE = datetime(2026, 9, 21, 23, 59, 59)
+CHAMPION_POINTS = 10
+
+
+def champions_open():
+    return now_local() <= CHAMPIONS_DEADLINE
+
+
+def normalize_champion(name):
+    return " ".join((name or "").strip().lower().split())
+
+
+def champion_points_for_user(user):
+    results = {r.competition_key: r.actual_champion for r in ChampionResult.query.all() if r.actual_champion}
+    points = 0
+    for p in user.champion_predictions:
+        actual = results.get(p.competition_key)
+        if actual and normalize_champion(actual) == normalize_champion(p.predicted_champion):
+            points += CHAMPION_POINTS
+    return points
+
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 login_manager.login_message = "Моля, влезте в профила си, за да продължите."
@@ -81,6 +116,9 @@ class User(db.Model, UserMixin):
     )
     suggestion_votes = db.relationship(
         "SuggestionVote", backref="voter", lazy=True, cascade="all, delete-orphan"
+    )
+    champion_predictions = db.relationship(
+        "ChampionPrediction", backref="user", lazy=True, cascade="all, delete-orphan"
     )
 
     def set_password(self, password):
@@ -231,6 +269,26 @@ class SuggestionVote(db.Model):
     __table_args__ = (db.UniqueConstraint("suggestion_id", "user_id", name="uq_suggestion_user"),)
 
 
+class ChampionPrediction(db.Model):
+    """Еднократна прогноза на потребител за шампиона на едно от 9-те първенства/турнира.
+    Подава се наведнъж за всички категории, преди CHAMPIONS_DEADLINE, и после не се редактира."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    competition_key = db.Column(db.String(50), nullable=False)
+    predicted_champion = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (db.UniqueConstraint("user_id", "competition_key", name="uq_user_competition"),)
+
+
+class ChampionResult(db.Model):
+    """Реалният шампион на едно от 9-те първенства/турнира — въвежда се ръчно от админ
+    след края на сезона. По едно ред на competition_key."""
+    id = db.Column(db.Integer, primary_key=True)
+    competition_key = db.Column(db.String(50), unique=True, nullable=False)
+    actual_champion = db.Column(db.String(120), nullable=True)
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
@@ -264,7 +322,8 @@ def current_week():
 def standings(week_id=None):
     """Връща списък (потребител, точки) сортиран по точки низходящо.
     За общото класиране (week_id=None) точките включват и ръчните корекции
-    (Adjustment) — включително архивирани точки от вече изтрити седмици."""
+    (Adjustment), архивирани точки от вече изтрити седмици, и точките от
+    прогнозите за шампионите на сезона."""
     query = db.session.query(User)
     result = []
     for user in query.all():
@@ -275,7 +334,8 @@ def standings(week_id=None):
         else:
             pred_total = sum(p.points for p in preds)
             adj_total = sum(a.points for a in user.adjustments)
-            total = round(pred_total + adj_total, 2)
+            champ_total = champion_points_for_user(user)
+            total = round(pred_total + adj_total + champ_total, 2)
         played = len(preds)
         result.append({"user": user, "total": total, "played": played})
     result.sort(key=lambda r: r["total"], reverse=True)
@@ -521,6 +581,62 @@ def suggestion_delete(suggestion_id):
     return redirect(url_for("suggestions_view"))
 
 
+@app.route("/champions", methods=["GET", "POST"])
+@login_required
+def champions_view():
+    existing = {p.competition_key: p for p in current_user.champion_predictions}
+    already_submitted = len(existing) > 0
+    is_open = champions_open()
+
+    if request.method == "POST":
+        if already_submitted:
+            flash("Вече си подал прогноза за шампионите — тя е еднократна и не може да се променя.", "danger")
+            return redirect(url_for("champions_view"))
+        if not is_open:
+            flash("Крайният срок (21 септември) е изтекъл — прогнози вече не се приемат.", "danger")
+            return redirect(url_for("champions_view"))
+
+        values = {}
+        missing_labels = []
+        for key, label in COMPETITIONS:
+            val = request.form.get(key, "").strip()
+            values[key] = val
+            if not val:
+                missing_labels.append(label)
+
+        if missing_labels:
+            flash("Попълни прогноза за всички категории: " + ", ".join(missing_labels), "danger")
+            return redirect(url_for("champions_view"))
+
+        for key, val in values.items():
+            db.session.add(ChampionPrediction(user_id=current_user.id, competition_key=key, predicted_champion=val))
+        db.session.commit()
+        flash("Прогнозите за шампионите са запазени! Ще се сравнят с реалните резултати в края на сезона.", "success")
+        return redirect(url_for("champions_view"))
+
+    results = {r.competition_key: r.actual_champion for r in ChampionResult.query.all()}
+    pred_status = {}
+    for key, _ in COMPETITIONS:
+        pred = existing.get(key)
+        actual = results.get(key)
+        if not pred or not actual:
+            pred_status[key] = None
+        else:
+            pred_status[key] = normalize_champion(pred.predicted_champion) == normalize_champion(actual)
+
+    return render_template(
+        "champions.html",
+        competitions=COMPETITIONS,
+        existing=existing,
+        already_submitted=already_submitted,
+        is_open=is_open,
+        results=results,
+        pred_status=pred_status,
+        deadline=CHAMPIONS_DEADLINE,
+        champion_points=CHAMPION_POINTS,
+    )
+
+
 @app.route("/account")
 @login_required
 def account():
@@ -691,6 +807,36 @@ def admin_set_result(match_id):
 def admin_users():
     users = User.query.order_by(User.username.asc()).all()
     return render_template("admin/users.html", users=users)
+
+
+@app.route("/admin/champions", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_champions():
+    if request.method == "POST":
+        for key, _ in COMPETITIONS:
+            val = request.form.get(key, "").strip()
+            result = ChampionResult.query.filter_by(competition_key=key).first()
+            if not result:
+                result = ChampionResult(competition_key=key)
+                db.session.add(result)
+            result.actual_champion = val or None
+        db.session.commit()
+        flash("Реалните шампиони са запазени — точките на играчите се обновиха автоматично.", "success")
+        return redirect(url_for("admin_champions"))
+
+    results = {r.competition_key: r.actual_champion for r in ChampionResult.query.all()}
+    by_competition = {}
+    for p in ChampionPrediction.query.all():
+        by_competition.setdefault(p.competition_key, []).append(p)
+
+    return render_template(
+        "admin/champions.html",
+        competitions=COMPETITIONS,
+        results=results,
+        by_competition=by_competition,
+        deadline=CHAMPIONS_DEADLINE,
+    )
 
 
 @app.route("/admin/user/<int:user_id>/delete", methods=["POST"])

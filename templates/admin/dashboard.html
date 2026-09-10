@@ -4,7 +4,10 @@
 <div class="page-head">
   <div class="eyebrow">Администрация</div>
   <h1>Седмици</h1>
-  <p class="lead"><a href="{{ url_for('admin_users') }}" style="color:var(--gold);">Управление на потребители →</a></p>
+  <p class="lead">
+    <a href="{{ url_for('admin_users') }}" style="color:var(--gold);">Управление на потребители →</a> ·
+    <a href="{{ url_for('admin_champions') }}" style="color:var(--gold);">Шампиони на сезона →</a>
+  </p>
 </div>
 
 <div class="panel">
@@ -38,7 +41,7 @@
           <a class="btn btn-ghost btn-small" href="{{ url_for('admin_week', week_id=w.id) }}">Управлявай</a>
           <form method="POST" action="{{ url_for('admin_archive_week', week_id=w.id) }}" style="display:inline;"
                 onsubmit="return confirm('Архивирай и изтрий безвъзвратно седмица {{ w.number }}? Точките на играчите ще се запазят в общото класиране, но самите мачове и прогнози ще изчезнат.{{ archive_warning }}');">
-                <button class="btn btn-danger btn-small" type="submit">Архивирай и изтрий</button>
+            <button class="btn btn-danger btn-small" type="submit">Архивирай и изтрий</button>
           </form>
         </td>
       </tr>
