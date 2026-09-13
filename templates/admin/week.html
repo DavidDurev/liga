@@ -71,17 +71,22 @@
   </div>
 
   {% if match.is_finished() %}
-    <p style="margin-top:10px;">Краен резултат: <strong>{{ match.actual_home }} : {{ match.actual_away }}</strong> (изход {{ match.actual_sign() }}, коеф. {{ match.odd_for_sign(match.actual_sign()) }})</p>
-  {% else %}
-    <form method="POST" action="{{ url_for('admin_set_result', match_id=match.id) }}" style="margin-top:12px;">
-      <div class="score-input-row">
-        <label style="margin:0;width:auto;">Краен резултат:</label>
-        <input type="number" min="0" name="actual_home" style="width:60px;" required>
-        <span class="dash">:</span>
-        <input type="number" min="0" name="actual_away" style="width:60px;" required>
-        <button class="btn btn-primary btn-small" type="submit">Запази резултат</button>
-      </div>
-    </form>
+    <p style="margin-top:10px;">Текущ резултат: <strong>{{ match.actual_home }} : {{ match.actual_away }}</strong> (изход {{ match.actual_sign() }}, коеф. {{ match.odd_for_sign(match.actual_sign()) }})</p>
+  {% endif %}
+  <form method="POST" action="{{ url_for('admin_set_result', match_id=match.id) }}" style="margin-top:12px;">
+    <div class="score-input-row">
+      <label style="margin:0;width:auto;">{{ 'Коригирай резултата:' if match.is_finished() else 'Краен резултат:' }}</label>
+      <input type="number" min="0" name="actual_home" style="width:60px;" value="{{ match.actual_home if match.is_finished() else '' }}" required>
+      <span class="dash">:</span>
+      <input type="number" min="0" name="actual_away" style="width:60px;" value="{{ match.actual_away if match.is_finished() else '' }}" required>
+      <button class="btn {{ 'btn-ghost' if match.is_finished() else 'btn-primary' }} btn-small" type="submit">
+        {{ 'Запази корекцията' if match.is_finished() else 'Запази резултат' }}
+      </button>
+    </div>
+    {% if match.is_finished() %}
+    <p style="margin-top:6px;font-size:.78rem;color:var(--chalk-dim);">Записването ще преизчисли точките на всички играчи за този мач наново.</p>
+    {% endif %}
+  </form>
   {% endif %}
 
   <details style="margin-top:14px;">
