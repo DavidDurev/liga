@@ -5,16 +5,27 @@
   <div class="eyebrow">Специална прогноза</div>
   <h1>Шампиони на сезона</h1>
   <p class="lead">
-    Прогнозирай шампионите на топ 5 първенства в Европа, България и трите европейски клубни турнира.
-    По {{ champion_points }} точки за всеки познат шампион. Прогнозата е <strong>еднократна</strong> —
-    подава се наведнъж за всички категории и после не може да се променя. Краен срок:
-    <strong>21 септември {{ deadline.year }}</strong>.
+    Прогнозирай шампионите на топ 5 първенства в Европа, ФА Къп, България и трите европейски клубни турнира.
+    По {{ champion_points }} точки за всеки познат шампион. Можеш да променяш избора си колкото пъти искаш
+    до крайния срок: <strong>7 октомври {{ deadline.year }}</strong>.
   </p>
 </div>
 
-{% if already_submitted %}
+{% if is_open %}
 <div class="panel">
-  <h3 style="margin-bottom:12px;">Твоята прогноза</h3>
+  <h3 style="margin-bottom:12px;">{{ 'Редактирай прогнозата си' if already_submitted else 'Твоята прогноза' }}</h3>
+  <form method="POST">
+    {% for key, label in competitions %}
+    {% set pred = existing.get(key) %}
+    <label for="{{ key }}">{{ label }}</label>
+    <input type="text" id="{{ key }}" name="{{ key }}" required placeholder="Име на отбора" value="{{ pred.predicted_champion if pred else '' }}">
+    {% endfor %}
+    <button class="btn btn-primary" type="submit">{{ 'Запази промените' if already_submitted else 'Запази прогнозата' }}</button>
+  </form>
+</div>
+{% elif already_submitted %}
+<div class="panel">
+  <h3 style="margin-bottom:12px;">Твоята прогноза (крайният срок е минал)</h3>
   <table class="scoreboard">
     <thead><tr><th>Турнир</th><th>Твоя прогноза</th><th>Статус</th></tr></thead>
     <tbody>
@@ -34,20 +45,10 @@
     </tbody>
   </table>
 </div>
-{% elif is_open %}
-<div class="panel">
-  <form method="POST">
-    {% for key, label in competitions %}
-    <label for="{{ key }}">{{ label }}</label>
-    <input type="text" id="{{ key }}" name="{{ key }}" required placeholder="Име на отбора">
-    {% endfor %}
-    <button class="btn btn-primary" type="submit">Запази прогнозата (еднократно)</button>
-  </form>
-</div>
 {% else %}
 <div class="empty-state">
   <div class="big">Крайният срок е изтекъл</div>
-  <p>Не си подал прогноза преди 21 септември {{ deadline.year }} — за съжаление тази категория вече е затворена за теб тази година.</p>
+  <p>Не си подал прогноза преди 7 октомври {{ deadline.year }} — за съжаление тази категория вече е затворена за теб тази година.</p>
 </div>
 {% endif %}
 {% endblock %}

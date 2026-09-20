@@ -57,7 +57,7 @@ def now_local():
 # --- "Шампиони на сезона" — еднократна прогноза, отделна от седмичните мачове ---
 COMPETITIONS = [
     ("epl", "Англия — Висша лига"),
-    ("facup", "Англия — ФА Къп"),
+    ("facup", "ФА Къп"),
     ("laliga", "Испания — Ла Лига"),
     ("bundesliga", "Германия — Бундеслига"),
     ("seriea", "Италия — Серия А"),
@@ -67,7 +67,7 @@ COMPETITIONS = [
     ("uel", "Лига Европа"),
     ("uecl", "Лига на конференциите"),
 ]
-CHAMPIONS_DEADLINE = datetime(2026, 9, 21, 23, 59, 59)
+CHAMPIONS_DEADLINE = datetime(2026, 10, 7, 23, 59, 59)
 CHAMPION_POINTS = 10
 
 
@@ -271,7 +271,7 @@ class SuggestionVote(db.Model):
 
 class ChampionPrediction(db.Model):
     """Еднократна прогноза на потребител за шампиона на едно от 9-те първенства/турнира.
-    Подава се наведнъж за всички категории, преди CHAMPIONS_DEADLINE, и после не се редактира."""
+    Подава се за всички категории наведнъж и може да се редактира до CHAMPIONS_DEADLINE."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     competition_key = db.Column(db.String(50), nullable=False)
@@ -589,11 +589,8 @@ def champions_view():
     is_open = champions_open()
 
     if request.method == "POST":
-        if already_submitted:
-            flash("Вече си подал прогноза за шампионите — тя е еднократна и не може да се променя.", "danger")
-            return redirect(url_for("champions_view"))
         if not is_open:
-            flash("Крайният срок (21 септември) е изтекъл — прогнози вече не се приемат.", "danger")
+            flash("Крайният срок (7 октомври) е изтекъл — прогнози вече не се приемат.", "danger")
             return redirect(url_for("champions_view"))
 
         values = {}
@@ -609,9 +606,13 @@ def champions_view():
             return redirect(url_for("champions_view"))
 
         for key, val in values.items():
-            db.session.add(ChampionPrediction(user_id=current_user.id, competition_key=key, predicted_champion=val))
+            pred = existing.get(key)
+            if pred:
+                pred.predicted_champion = val
+            else:
+                db.session.add(ChampionPrediction(user_id=current_user.id, competition_key=key, predicted_champion=val))
         db.session.commit()
-        flash("Прогнозите за шампионите са запазени! Ще се сравнят с реалните резултати в края на сезона.", "success")
+        flash("Прогнозите за шампионите са запазени!", "success")
         return redirect(url_for("champions_view"))
 
     results = {r.competition_key: r.actual_champion for r in ChampionResult.query.all()}
