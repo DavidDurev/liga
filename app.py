@@ -542,7 +542,10 @@ def suggestion_new():
     if not home or not away:
         flash("Попълни и двата отбора.", "danger")
     else:
-        db.session.add(MatchSuggestion(home_team=home, away_team=away, created_by_id=current_user.id))
+        suggestion = MatchSuggestion(home_team=home, away_team=away, created_by_id=current_user.id)
+        db.session.add(suggestion)
+        db.session.flush()  # за да получи suggestion.id преди да добавим гласа
+        db.session.add(SuggestionVote(suggestion_id=suggestion.id, user_id=current_user.id))
         db.session.commit()
         flash("Предложението е добавено.", "success")
     return redirect(url_for("suggestions_view"))
