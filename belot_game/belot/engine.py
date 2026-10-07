@@ -149,51 +149,6 @@ def sort_hand(hand, contract=None):
                                        -card_order(c, contract) if contract else -PLAIN_ORDER.index(rank(c))))
 
 
-class _SearchBudget(Exception):
-    pass
-
-
-class _ClaimSearch:
-    """Пълно претърсване на остатъка от раздаването: играчът `claimer` избира картите си,
-    а останалите трима (и партньорът!) играят каквото и да е позволено.
-    wins() е True, ако отборът на claimer взима всички оставащи ръце."""
-
-    def __init__(self, contract, claimer, budget):
-        self.contract, self.claimer, self.budget = contract, claimer, budget
-        self.memo, self.nodes = {}, 0
-
-    def wins(self, hands, trick, leader):
-        """hands: ръцете (кортежи); trick: изиграното във взятката; leader: кой я е започнал."""
-        if len(trick) == 4:
-            w, _ = trick_winner(list(trick), self.contract)
-            if team(w) != team(self.claimer):
-                return False
-            return not hands[w] or self.wins(hands, (), w)
-        key = (hands, trick, leader)
-        if key in self.memo:
-            return self.memo[key]
-        self.nodes += 1
-        if self.budget is not None and self.nodes > self.budget:
-            raise _SearchBudget
-        turn = (leader + len(trick)) % 4
-        options = legal_cards(list(hands[turn]), list(trick), self.contract, turn)
-        results = (self.wins(self._without(hands, turn, c), trick + ((turn, c),), leader) for c in options)
-        res = any(results) if turn == self.claimer else all(results)
-        self.memo[key] = res
-        return res
-
-    def winning_card(self, hands, trick, leader):
-        options = legal_cards(list(hands[self.claimer]), list(trick), self.contract, self.claimer)
-        for c in options:
-            if self.wins(self._without(hands, self.claimer, c), trick + ((self.claimer, c),), leader):
-                return c
-        return options[0]
-
-    @staticmethod
-    def _without(hands, seat, card):
-        return tuple(tuple(x for x in h if x != card) if i == seat else h for i, h in enumerate(hands))
-
-
 class Game:
     """Цяла игра до 151 точки, състояща се от раздавания."""
 
@@ -226,7 +181,6 @@ class Game:
         self.belots = []               # (seat, suit)
         self.played_first = [False] * 4
         self.hand_result = None
-        self._claim_cache = {}
         self._deal_round([3, 2])
         self.turn = (self.dealer + 1) % 4
         self.add_log(f"Раздава {{p{self.dealer}}}.")
@@ -333,37 +287,53 @@ class Game:
     # ---------- сваляне на картите ----------
     def can_claim(self, seat):
         """Може ли играчът да свали картите: той е на ход, започва взятка, остават поне 2 ръце
-        и отборът му гарантирано взима всички, каквото и да играят другите (вкл. партньорът)."""
+        и само от собствените си карти (и вече изиграните) е сигурен, че сам взима всичко."""
         if (self.phase != "playing" or seat != self.turn or self.trick
                 or len(self.hands[seat]) < 2):
             return False
-        key = (seat, len(self.hands[seat]))
-        if key not in self._claim_cache:
-            try:
-                self._claim_cache[key] = self._claim_search(seat).wins(self._claim_state(), (), seat)
-            except _SearchBudget:
-                self._claim_cache[key] = False     # твърде сложно за изчисляване – не предлагаме
-        return self._claim_cache[key]
+        return self._claim_order(seat) is not None
 
     def claim(self, seat):
         if not self.can_claim(seat):
-            raise ValueError("Не е сигурно, че всички ръце са твои.")
-        self.add_log(f"{{p{seat}}} свали картите – всички ръце са за отбора му.")
-        search = self._claim_search(seat, budget=None)
+            raise ValueError("От твоите карти не е сигурно, че всички ръце са твои.")
+        self.add_log(f"{{p{seat}}} свали картите – всички ръце са негови.")
+        order = self._claim_order(seat)
         while self.phase == "playing":
             if self.trick_complete():
                 self.collect_trick()
             elif self.turn == seat:
-                leader = self.trick[0][0] if self.trick else seat
-                self.play(seat, search.winning_card(self._claim_state(), tuple(self.trick), leader))
+                self.play(seat, order.pop(0))
             else:
                 self.play(self.turn, self.legal(self.turn)[0])
 
-    def _claim_state(self):
-        return tuple(tuple(sorted(h)) for h in self.hands)
+    def _claim_order(self, seat):
+        """Редът, в който играчът сваля картите си, или None, ако не е сигурно.
 
-    def _claim_search(self, seat, budget=40000):
-        return _ClaimSearch(self.contract, seat, budget)
+        Ползва само това, което играчът знае: своите карти и вече изиграните.
+        Неизвестните карти може да са у когото и да е от другите трима, затова:
+          - всяка негова карта трябва да е по-силна от всички неизвестни карти от боята си;
+          - при игра на цвят, ако има и некозове, трябва да има поне толкова козове, колкото
+            са неизвестните – като ги изиграе първи, изтегля всички чужди козове и никой
+            не може да цака некозовете му."""
+        c = self.contract
+        mine = self.hands[seat]
+        played = set(self.taken[0]) | set(self.taken[1]) | {x for _, x in self.trick}
+        unknown = [x for x in new_deck() if x not in mine and x not in played]
+
+        def strongest(card):
+            return all(card_order(card, c) > card_order(u, c) for u in unknown if suit(u) == suit(card))
+
+        if not all(strongest(x) for x in mine):
+            return None
+        by_strength = lambda cards: sorted(cards, key=lambda x: card_order(x, c), reverse=True)
+        if c not in SUITS:                       # без коз / всичко коз – няма цакане с друга боя
+            return by_strength(mine)
+        my_trumps = [x for x in mine if suit(x) == c]
+        others = [x for x in mine if suit(x) != c]
+        unknown_trumps = [u for u in unknown if suit(u) == c]
+        if others and len(my_trumps) < len(unknown_trumps):
+            return None
+        return by_strength(my_trumps) + by_strength(others)
 
     # ---------- точкуване ----------
     def _score_hand(self, last_team):

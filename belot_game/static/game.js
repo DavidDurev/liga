@@ -297,7 +297,7 @@ function renderGame() {
       <div class="table-wrap"><div class="table">${seatsHtml}<div class="trick">${trickHtml}</div>${banner}</div></div>
       <div class="hand-area">
         <div class="status-line">${statusText(g)}</div>
-        ${g.can_claim ? '<button class="primary claim-btn" id="claim">Свали картите – всички ръце са ваши</button>' : ''}
+        ${g.can_claim ? '<button class="primary claim-btn" id="claim">Свали картите – всички ръце са твои</button>' : ''}
         ${bidPanel}
         <div class="hand ${myTurnPlay ? 'myturn' : ''}">${handHtml}</div>
       </div>
