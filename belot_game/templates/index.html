@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Белот онлайн</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <main class="landing">
+    <div>
+      {% if request.script_root %}<a href="/izbor" class="muted" style="text-decoration:none">← Назад</a>{% endif %}
+      <div class="suits-deco">♠<span class="r">♥</span>♣<span class="r">♦</span></div>
+      <h1>Бе<span>лот</span></h1>
+      <p class="muted">Създай маса, прати линка на приятелите си и играйте. Празните места може да заемат ботове.</p>
+    </div>
+    <section class="box">
+      <h2>Нова маса</h2>
+      <button class="primary" id="create">Създай маса</button>
+    </section>
+    <section class="box">
+      <h2>Влез с код</h2>
+      <div class="row">
+        <input id="code" maxlength="4" placeholder="напр. 4821" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+        <button id="join">Влез</button>
+      </div>
+    </section>
+    <div class="error" id="err"></div>
+  </main>
+  <script>
+    const BASE = {{ request.script_root|tojson }};   // "" локално, "/belot" когато е вграден в друг сайт
+    const err = document.getElementById('err');
+    // Името идва от лигата (?name=...) – помним го, за да не се въвежда отново в лобито
+    const nameFromLink = new URLSearchParams(location.search).get('name');
+    if (nameFromLink) { try { localStorage.setItem('belot_name', nameFromLink.slice(0, 20)); } catch (e) {} }
+    document.getElementById('create').onclick = async () => {
+      const r = await fetch(BASE + '/api/rooms', {method: 'POST'});
+      const d = await r.json();
+      location.href = BASE + '/r/' + d.code;
+    };
+    const join = () => {
+      const code = document.getElementById('code').value.trim();
+      if (!/^\d{4}$/.test(code)) { err.textContent = 'Кодът е от 4 цифри.'; return; }
+      location.href = BASE + '/r/' + code;
+    };
+    document.getElementById('join').onclick = join;
+    document.getElementById('code').addEventListener('keydown', e => { if (e.key === 'Enter') join(); });
+  </script>
+</body>
+</html>

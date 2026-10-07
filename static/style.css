@@ -389,3 +389,23 @@ footer.site-footer {
   .ticket-stub::before, .ticket-stub::after { left: 50%; top: -8px; transform: translateX(-50%); }
   .ticket-stub::after { top: auto; bottom: -8px; }
 }
+
+/* ---------- Избор след вход: лига или белот (карта като при входа) ---------- */
+.choose-box { max-width: 440px; }
+.choose-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; }
+.choose-tile {
+  aspect-ratio: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; text-decoration: none; color: var(--chalk);
+  background: var(--pitch); border: 1px solid var(--pitch-line); border-radius: 6px;
+  transition: transform .12s, border-color .15s, background .15s;
+}
+.choose-tile:hover { transform: translateY(-2px); border-color: var(--gold); background: var(--pitch-line-soft); }
+.choose-logo { width: 72px; height: 72px; object-fit: contain; }
+.choose-suits { font-size: 40px; line-height: 1; letter-spacing: 2px; color: var(--chalk); }
+.choose-suits .red { color: var(--brick); }
+.choose-title { font-family: var(--font-display); font-size: 1.35rem; text-transform: uppercase; letter-spacing: 0.05em; }
+@media (max-width: 420px) {
+  .choose-logo { width: 56px; height: 56px; }
+  .choose-suits { font-size: 30px; }
+  .choose-title { font-size: 1.1rem; }
+}

@@ -354,7 +354,7 @@ def inject_globals():
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("choose"))
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
@@ -391,15 +391,14 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("index"))
+        return redirect(url_for("choose"))
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "")
         user = User.query.filter_by(username=username).first()
         if user and user.check_password(password):
             login_user(user)
-            flash(f"Добре дошъл, {user.username}!", "success")
-            return redirect(url_for("index"))
+            return redirect(url_for("choose"))   # поздравът е на самата страница за избор
         flash("Грешно потребителско име или парола.", "danger")
     return render_template("login.html")
 
@@ -415,6 +414,13 @@ def logout():
 # ---------------------------------------------------------------------------
 # Основни страници
 # ---------------------------------------------------------------------------
+
+@app.route("/izbor")
+@login_required
+def choose():
+    """След вход: два квадрата – към лигата или към белота (без менюто, като екрана за вход)."""
+    return render_template("choose.html", hide_nav=True)
+
 
 @app.route("/")
 @login_required
@@ -944,6 +950,19 @@ def forbidden(e):
 @app.errorhandler(404)
 def not_found(e):
     return render_template("error.html", code=404, message="Страницата не е намерена."), 404
+
+
+# ---------------------------------------------------------------------------
+# Белот – отделно приложение в папка belot_game/, закачено под /belot
+# ---------------------------------------------------------------------------
+
+import sys  # noqa: E402
+from werkzeug.middleware.dispatcher import DispatcherMiddleware  # noqa: E402
+
+sys.path.insert(0, os.path.join(BASE_DIR, "belot_game"))
+from belot_app import app as belot_app  # noqa: E402
+
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {"/belot": belot_app})
 
 
 # ---------------------------------------------------------------------------

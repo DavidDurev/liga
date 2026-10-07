@@ -10,17 +10,18 @@
 <body>
   <nav class="navbar">
     <div class="navbar-inner">
-      <a class="brand" href="{{ url_for('index') if current_user.is_authenticated else url_for('login') }}">
+      <a class="brand" href="{{ url_for('choose') if current_user.is_authenticated else url_for('login') }}">
         <img src="{{ url_for('static', filename='logo.png') }}" alt="СФЛ лого" class="brand-badge">
         Селска Футболна Лига
       </a>
-      {% if current_user.is_authenticated %}
+      {% if current_user.is_authenticated and not hide_nav %}
       <div class="nav-links">
         <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Прогнози</a>
         <a href="{{ url_for('suggestions_view') }}" class="{{ 'active' if request.endpoint == 'suggestions_view' }}">Предложения</a>
         <a href="{{ url_for('champions_view') }}" class="{{ 'active' if request.endpoint == 'champions_view' }}">Шампиони</a>
         <a href="{{ url_for('standings_view') }}" class="{{ 'active' if request.endpoint == 'standings_view' }}">Класиране</a>
         <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">Моята история</a>
+        <a href="/belot/?name={{ current_user.username|urlencode }}">Белот</a>
         {% if current_user.is_admin %}
         <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') and request.endpoint != 'admin_users' }}">Админ</a>
         <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' }}">Потребители</a>

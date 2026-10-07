@@ -1,0 +1,335 @@
+:root {
+  --felt: #1d5c3a;
+  --felt-dark: #154a2e;
+  --felt-edge: #0f3420;
+  --bg: #0c2416;
+  --panel: rgba(0, 0, 0, 0.28);
+  --panel-solid: #12321f;
+  --text: #f2efe6;
+  --muted: #a9c2b2;
+  --gold: #e8c26a;
+  --accent: #f0b43c;
+  --red: #c8322f;
+  --black: #1b1b1b;
+  --card: #ffffff;
+  --card-edge: #bfbfbf;
+  /* Цветове на боите: --c-* върху картите (бял фон), --d-* върху тъмния фон */
+  --c-S: #000; --c-C: #000; --c-H: #d0121f; --c-D: #d0121f;
+  --d-S: #fff; --d-C: #fff; --d-H: #ff7b73; --d-D: #ff7b73;
+  --us: #6fc3ff;
+  --them: #ff8f7a;
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: radial-gradient(ellipse at center, #17432a 0%, var(--bg) 70%);
+  color: var(--text);
+  font: 15px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+button {
+  font: inherit; cursor: pointer; border: 0; border-radius: 8px;
+  padding: 8px 14px; background: #2d6b47; color: var(--text);
+  transition: transform .08s, background .15s;
+}
+button:hover:not(:disabled) { background: #378055; }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:disabled { opacity: .45; cursor: default; }
+button.primary { background: var(--accent); color: #2a1a00; font-weight: 600; }
+button.primary:hover:not(:disabled) { background: #ffc85a; }
+button.ghost { background: transparent; border: 1px solid rgba(255,255,255,.25); }
+input {
+  font: inherit; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,.2);
+  background: rgba(0,0,0,.3); color: var(--text); outline: none;
+}
+input:focus { border-color: var(--accent); }
+.muted { color: var(--muted); }
+.error { color: #ffb3a8; min-height: 1.4em; }
+
+/* ---------- начална страница ---------- */
+.landing {
+  max-width: 440px; margin: 0 auto; padding: 56px 16px;
+  display: flex; flex-direction: column; gap: 22px;
+}
+.landing h1 { font-size: 46px; margin: 0; letter-spacing: 1px; }
+.landing h1 span { color: var(--gold); }
+.suits-deco { font-size: 26px; letter-spacing: 8px; }
+.suits-deco .r { color: #ff6b62; }
+.box { background: var(--panel); border-radius: var(--radius); padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+.box h2 { margin: 0 0 4px; font-size: 17px; }
+.row { display: flex; gap: 8px; }
+.row input { flex: 1; min-width: 0; }
+
+/* ---------- лоби ---------- */
+.lobby { max-width: 720px; margin: 0 auto; padding: 28px 16px; display: flex; flex-direction: column; gap: 18px; }
+.lobby h1 { margin: 0; font-size: 26px; }
+.code-badge { font-family: Consolas, monospace; background: rgba(0,0,0,.35); padding: 2px 10px; border-radius: 6px; color: var(--gold); letter-spacing: 3px; }
+.invite { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.invite input { flex: 1; min-width: 200px; font-family: Consolas, monospace; font-size: 13px; }
+.seat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.seat-box {
+  background: var(--panel); border-radius: var(--radius); padding: 14px; min-height: 92px;
+  display: flex; flex-direction: column; gap: 8px; border: 2px solid transparent;
+}
+.seat-box.team0 { border-left: 4px solid var(--us); }
+.seat-box.team1 { border-left: 4px solid var(--them); }
+.seat-box.mine { border-color: var(--accent); }
+.seat-box .who { font-weight: 600; font-size: 16px; }
+.seat-box .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; }
+.seat-box .actions button { padding: 5px 10px; font-size: 13px; }
+
+/* ---------- маса ---------- */
+.game { display: grid; grid-template-columns: 1fr 280px; height: 100vh; }
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.topbar {
+  display: flex; align-items: center; gap: 14px; padding: 8px 14px;
+  background: rgba(0,0,0,.3); flex-wrap: wrap;
+}
+.topbar .score { display: flex; gap: 10px; font-weight: 700; font-size: 18px; }
+.topbar .score .us { color: var(--us); }
+.topbar .score .them { color: var(--them); }
+.contract-pill { background: rgba(0,0,0,.35); border-radius: 999px; padding: 3px 12px; }
+.contract-pill b { color: var(--gold); }
+.topbar .spacer { flex: 1; }
+
+.table-wrap { flex: 1; display: flex; padding: 12px; min-height: 0; }
+.table {
+  flex: 1; position: relative; border-radius: 120px;
+  background: radial-gradient(ellipse at center, var(--felt) 0%, var(--felt-dark) 75%);
+  border: 10px solid var(--felt-edge);
+  box-shadow: inset 0 0 60px rgba(0,0,0,.45), 0 10px 30px rgba(0,0,0,.4);
+  min-height: 360px;
+}
+.seat {
+  position: absolute; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  text-align: center;
+}
+.seat.pos1 { right: 18px; top: 50%; transform: translateY(-50%); }
+.seat.pos2 { top: 14px; left: 50%; transform: translateX(-50%); }
+.seat.pos3 { left: 18px; top: 50%; transform: translateY(-50%); }
+.seat.pos0 { bottom: 12px; left: 50%; transform: translateX(-50%); }
+.nameplate {
+  background: rgba(0,0,0,.45); padding: 4px 12px; border-radius: 999px; font-weight: 600;
+  display: flex; gap: 6px; align-items: center; white-space: nowrap; border: 2px solid transparent;
+}
+.nameplate.team0 { box-shadow: inset 3px 0 0 var(--us); }
+.nameplate.team1 { box-shadow: inset 3px 0 0 var(--them); }
+.nameplate.turn { border-color: var(--accent); animation: pulse 1.2s infinite; }
+.nameplate .dealer { background: var(--gold); color: #2a1a00; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; display: inline-grid; place-items: center; }
+.nameplate .off { width: 8px; height: 8px; border-radius: 50%; background: #888; }
+@keyframes pulse { 50% { box-shadow: 0 0 14px var(--accent); } }
+.bubble {
+  background: var(--card); color: #222; border-radius: 10px; padding: 4px 12px; font-size: 15px; font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,.3); max-width: 220px;
+}
+/* символите на боите в бялото балонче – с цветовете на картите, не на тъмния фон */
+.bubble .sym.s-S { color: var(--c-S); } .bubble .sym.s-C { color: var(--c-C); }
+.bubble .sym.s-H { color: var(--c-H); } .bubble .sym.s-D { color: var(--c-D); }
+/* обявяване: пас, купа, без коз, контра… */
+.bubble.bid {
+  font-size: 19px; font-weight: 800; padding: 6px 16px; border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.45); white-space: nowrap; max-width: none;
+}
+.bubble.bid .sym { font-size: 22px; }
+/* анонси: терца, кварта, квинта, каре, белот */
+.decls { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.seat { z-index: 2; }                       /* балончетата да са над картите в средата */
+/* горният играч: анонсите вдясно от картите му, за да не слизат върху взятката */
+.seat.pos2 .decls {
+  position: absolute; left: calc(100% + 10px); top: 0; flex-direction: row; align-items: flex-start;
+}
+.bubble.decl {
+  background: linear-gradient(180deg, #ffe08a, #f0b43c); color: #2a1a00;
+  font-size: 19px; font-weight: 800; padding: 6px 16px; border-radius: 12px;
+  border: 2px solid #fff3c4; box-shadow: 0 4px 14px rgba(0,0,0,.45); white-space: nowrap; max-width: none;
+}
+.backs { display: flex; }
+.backs .back { margin-left: -22px; }
+.backs .back:first-child { margin-left: 0; }
+.seat.pos1 .backs, .seat.pos3 .backs { flex-direction: column; }
+.seat.pos1 .backs .back, .seat.pos3 .backs .back { margin-left: 0; margin-top: -48px; }
+.seat.pos1 .backs .back:first-child, .seat.pos3 .backs .back:first-child { margin-top: 0; }
+
+.trick { position: absolute; inset: 0; pointer-events: none; }
+.trick .card { position: absolute; left: 50%; top: 50%; transition: all .25s; }
+.trick .t0 { transform: translate(-50%, -10%); }
+.trick .t1 { transform: translate(15%, -55%) rotate(6deg); }
+.trick .t2 { transform: translate(-50%, -100%); }
+.trick .t3 { transform: translate(-115%, -45%) rotate(-6deg); }
+.trick .win { box-shadow: 0 0 0 3px var(--accent), 0 4px 10px rgba(0,0,0,.4); }
+
+/* ---------- карти ---------- */
+.s-S { color: var(--c-S); } .s-C { color: var(--c-C); }
+.s-H { color: var(--c-H); } .s-D { color: var(--c-D); }
+.sym.s-S { color: var(--d-S); } .sym.s-C { color: var(--d-C); }
+.sym.s-H { color: var(--d-H); } .sym.s-D { color: var(--d-D); }
+
+.card {
+  width: 78px; height: 112px; border-radius: 9px; background: var(--card);
+  border: 1px solid var(--card-edge); position: relative;
+  box-shadow: 0 3px 8px rgba(0,0,0,.45); user-select: none; flex: none;
+  font-family: Arial, "Segoe UI", sans-serif;
+}
+.card .corner {
+  position: absolute; top: 5px; left: 6px; font-weight: 800; font-size: 21px;
+  line-height: .95; text-align: center; letter-spacing: -1px;
+}
+.card .corner small { display: block; font-size: 20px; letter-spacing: 0; }
+.card .corner.br { top: auto; left: auto; bottom: 5px; right: 6px; transform: rotate(180deg); }
+.card .center {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 50px; line-height: 1;
+}
+.card .center.face { flex-direction: column; font-size: 34px; font-weight: 800; gap: 2px; }
+.card .center.face span:last-child { font-size: 30px; }
+.card.small { width: 48px; height: 68px; border-radius: 6px; }
+.card.small .corner { font-size: 15px; top: 3px; left: 4px; }
+.card.small .corner small { font-size: 14px; }
+.card.small .corner.br { display: none; }
+.card.small .center { font-size: 26px; padding: 12px 0 0 10px; }
+.card.small .center.face { font-size: 18px; }
+.card.small .center.face span:last-child { font-size: 16px; }
+.back {
+  width: 38px; height: 54px; border-radius: 5px; border: 2px solid #f4efe2;
+  background: repeating-linear-gradient(45deg, #1d3f8f 0 5px, #2c56b3 5px 10px);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+
+.hand-area { padding: 6px 12px 14px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.hand { display: flex; justify-content: center; min-height: 128px; padding-top: 14px; }
+/* Ръката е подредена като ветрило: --rot и --arc идват от JS, --lift е повдигането */
+.hand .card {
+  margin-left: -16px; transition: transform .12s;
+  transform: translateY(calc(var(--arc, 0px) * var(--fan, 1) + var(--lift, 0px))) rotate(calc(var(--rot, 0deg) * var(--fan, 1)));
+  transform-origin: 50% 130%;
+}
+.hand .card:first-child { margin-left: 0; }
+.hand .card.legal { cursor: pointer; }
+@media (hover: hover) { .hand .card.legal:hover { --lift: -12px; } }
+.hand .card.selected { --lift: -22px; }
+.hand .card.illegal { filter: brightness(.72) saturate(.7); --lift: 8px; }
+.hand .card .corner.br { display: none; }   /* в ръката се застъпват – долният ъгъл само пречи */
+.hand.myturn .card.legal { box-shadow: 0 0 0 2px var(--accent), 0 2px 6px rgba(0,0,0,.35); }
+.status-line { min-height: 22px; color: var(--gold); font-weight: 600; text-align: center; }
+
+.bid-panel { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.bid-panel button { min-width: 96px; padding: 11px 16px; font-size: 17px; font-weight: 700; }
+.bid-panel .suit-btn { background: var(--card); font-weight: 700; }
+.bid-panel .suit-btn:hover:not(:disabled) { background: #f1f1f1; }
+.bid-panel .suit-btn .sym-big { font-size: 22px; }
+.topbar .ghost { padding: 4px 10px; font-size: 13px; }
+.topbar .danger { background: #8b2b2b; padding: 4px 12px; font-size: 13px; }
+.topbar .danger:hover { background: #a33333; }
+.notice { background: rgba(240, 180, 60, .15); border: 1px solid rgba(240, 180, 60, .4); border-radius: var(--radius); padding: 10px 14px; }
+.bid-panel .double { background: #8b2b2b; }
+
+/* ---------- странична лента ---------- */
+.side { background: rgba(0,0,0,.3); display: flex; flex-direction: column; min-height: 0; padding: 12px; gap: 12px; overflow: auto; }
+.side h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.log { font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.log div { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.history table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.history td, .history th { padding: 3px 4px; text-align: center; }
+.history th { color: var(--muted); font-weight: 500; }
+.history .us { color: var(--us); }
+.history .them { color: var(--them); }
+.last-trick { display: flex; gap: 4px; }
+
+/* ---------- модали ---------- */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 10; padding: 16px; }
+.modal { background: var(--panel-solid); border-radius: 16px; padding: 22px; width: min(440px, 100%); box-shadow: 0 20px 50px rgba(0,0,0,.5); display: flex; flex-direction: column; gap: 12px; }
+.modal h2 { margin: 0; }
+.modal table { width: 100%; border-collapse: collapse; }
+.modal td, .modal th { padding: 5px 6px; text-align: right; }
+.modal td:first-child, .modal th:first-child { text-align: left; color: var(--muted); }
+.modal tr.total td { border-top: 1px solid rgba(255,255,255,.2); font-weight: 700; font-size: 17px; }
+.modal .us { color: var(--us); }
+.modal .them { color: var(--them); }
+.toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #7a2222; padding: 8px 16px; border-radius: 8px; z-index: 20; }
+
+/* ---------- меню (само на телефон/таблет) ---------- */
+.mob-only { display: none; }
+.menu-btn { font-size: 20px; line-height: 1; padding: 4px 10px; }
+.menu {
+  position: absolute; right: 8px; top: calc(100% + 4px); z-index: 12; min-width: 230px;
+  background: var(--panel-solid); border-radius: 12px; padding: 12px;
+  display: flex; flex-direction: column; gap: 8px; box-shadow: 0 12px 30px rgba(0,0,0,.5);
+}
+.topbar .menu button { text-align: left; padding: 10px 14px; font-size: 15px; }
+.menu .danger { background: #8b2b2b; }
+.side-close { align-self: flex-end; }
+
+@media (max-width: 900px) {
+  .desk-only { display: none !important; }
+  .mob-only { display: inline-flex; }
+  .game { display: block; height: auto; }
+  .main { height: 100vh; height: 100dvh; }
+  .topbar { flex-wrap: nowrap; position: relative; gap: 8px; padding: 6px 10px; }
+  .contract-pill { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .side {
+    position: fixed; inset: 0; z-index: 15; background: var(--panel-solid);
+    transform: translateX(100%); transition: transform .2s; padding: 16px;
+  }
+  .side.open { transform: none; }
+  .table { border-radius: 60px; min-height: 0; }
+}
+@media (max-width: 560px) {
+  .topbar .score { font-size: 16px; gap: 5px; }
+  .contract-pill { font-size: 13px; padding: 2px 9px; }
+  .table-wrap { padding: 6px 8px; }
+  .hand-area { padding: 4px 8px calc(10px + env(safe-area-inset-bottom)); gap: 6px; }
+  .status-line { font-size: 14px; }
+  .bid-panel { gap: 5px; }
+  .bid-panel button { min-width: 0; flex: 1 1 30%; padding: 11px 4px; font-size: 16px; }
+  .card { width: 54px; height: 78px; }
+  .card .corner { font-size: 16px; top: 3px; left: 4px; }
+  .card .corner small { font-size: 15px; }
+  .card .corner.br { display: none; }
+  .card .center { font-size: 30px; padding: 14px 0 0 12px; }
+  .card .center.face { font-size: 20px; }
+  .card .center.face span:last-child { font-size: 18px; }
+  /* по-големи карти в ръката, застъпени точно колкото да се съберат 8 */
+  .hand { min-height: 130px; padding: 18px 0 16px; --fan: .45; }
+  .hand .card { width: 64px; height: 94px; margin-left: min(-6px, calc((100vw - 28px - 64px) / 7 - 64px)); }
+  .hand .card .corner { font-size: 19px; }
+  .hand .card .corner small { font-size: 18px; }
+  .hand .card .center { font-size: 34px; padding: 18px 0 0 14px; }
+  .hand .card .center.face { font-size: 22px; }
+  .hand .card .center.face span:last-child { font-size: 20px; }
+  .back { width: 26px; height: 38px; }
+  .backs .back { margin-left: -18px; }
+  .seat.pos1 .backs .back, .seat.pos3 .backs .back { margin-top: -32px; }
+  .seat-grid { grid-template-columns: 1fr; }
+  .table { border-width: 6px; border-radius: 40px; }
+  .seat.pos1 { right: 4px; } .seat.pos3 { left: 4px; }
+  .nameplate { font-size: 12px; padding: 3px 8px; }
+}
+
+/* ---------- табела с обявената игра ---------- */
+.announce-banner {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  background: rgba(8, 26, 16, .92); border: 2px solid var(--gold); border-radius: 16px;
+  padding: 14px 26px; text-align: center; z-index: 5; min-width: 200px;
+  box-shadow: 0 12px 34px rgba(0,0,0,.55);
+  animation: announce-in .35s ease-out;
+}
+.announce-contract { font-size: 30px; font-weight: 800; color: var(--gold); margin: 2px 0 4px; white-space: nowrap; }
+.announce-contract .sym { font-size: 34px; }
+.announce-contract .mult { font-size: 16px; color: #ff9b8f; vertical-align: middle; }
+@keyframes announce-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.8); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@media (max-width: 560px) {
+  .announce-banner { padding: 10px 16px; min-width: 0; }
+  .bubble.decl, .bubble.bid { font-size: 15px; padding: 4px 10px; }
+  .bubble.bid .sym { font-size: 17px; }
+  /* на телефон масата е висока – под името има място и нищо не се реже отстрани */
+  .seat.pos2 .decls { position: static; flex-direction: row; flex-wrap: wrap; justify-content: center; max-width: 92vw; }
+  .announce-contract { font-size: 24px; }
+}
+
+/* ---------- бутон „Свали картите“ ---------- */
+.claim-btn { padding: 10px 18px; font-size: 15px; animation: claim-pulse 1.4s ease-in-out infinite; }
+@keyframes claim-pulse { 50% { box-shadow: 0 0 0 6px rgba(240, 180, 60, .25); } }

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Избери · Селска Футболна Лига{% endblock %}
+{% block content %}
+<div class="auth-box panel choose-box">
+  <div class="eyebrow" style="font-family:var(--font-mono);color:var(--gold);font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Избор</div>
+  <h2>Добре дошъл, {{ current_user.username }}</h2>
+  <div class="choose-grid">
+    <a class="choose-tile" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="" class="choose-logo">
+      <span class="choose-title">Лигата</span>
+    </a>
+    <a class="choose-tile" href="/belot/?name={{ current_user.username|urlencode }}">
+      <span class="choose-suits">♠<span class="red">♥</span>♣<span class="red">♦</span></span>
+      <span class="choose-title">Белот</span>
+    </a>
+  </div>
+</div>
+{% endblock %}
