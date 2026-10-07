@@ -344,7 +344,9 @@ def standings(week_id=None):
 
 @app.context_processor
 def inject_globals():
-    return {"now": now_local()}
+    # static_v: сменя се при всяка промяна на style.css, за да не ползват браузърите старо копие от кеша
+    css_mtime = int(os.path.getmtime(os.path.join(BASE_DIR, "static", "style.css")))
+    return {"now": now_local(), "static_v": css_mtime}
 
 
 # ---------------------------------------------------------------------------

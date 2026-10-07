@@ -5,6 +5,7 @@
 Ботовете и паузите между взятките се движат в tick(), извиквано при всяка заявка,
 така че не са нужни фонови нишки.
 """
+import os
 import random
 import secrets
 import socket
@@ -18,6 +19,13 @@ from belot import bots
 from belot.engine import Game, sort_hand, trick_winner
 
 app = Flask(__name__)
+
+
+@app.context_processor
+def inject_static_version():
+    # Сменя се при всяка промяна на CSS/JS, за да не ползват браузърите старо копие от кеша
+    files = ("style.css", "game.js")
+    return {"static_v": max(int(os.path.getmtime(os.path.join(app.static_folder, f))) for f in files)}
 
 BOT_DELAY = 0.6          # сек. между ходовете на ботовете
 TRICK_PAUSE = 1.3        # сек. колко се вижда завършената взятка

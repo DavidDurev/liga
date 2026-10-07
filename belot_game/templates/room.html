@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Белот · маса {{ code }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=static_v) }}">
 </head>
 <body>
   <div id="app"></div>
   <script>window.ROOM_CODE = "{{ code }}"; window.BASE = {{ request.script_root|tojson }};</script>
-  <script src="{{ url_for('static', filename='game.js') }}"></script>
+  <script src="{{ url_for('static', filename='game.js', v=static_v) }}"></script>
 </body>
 </html>
