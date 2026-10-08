@@ -292,6 +292,15 @@ def handle_action(room, token, kind, data):
                        f"{g.scores[0]} : {g.scores[1]} (отбор 1 : отбор 2).")
         room.game = None
         return {}
+    if kind == "to_lobby":
+        # След края на играта всеки играч може да върне масата в лобито; местата се запазват.
+        if g.phase != "game_over":
+            raise ValueError("Играта още не е свършила.")
+        w = g.winner
+        names = " и ".join(room.seats[s]["name"] for s in (w, w + 2))
+        room.notice = f"Последна игра: {names} победиха с {g.scores[w]} : {g.scores[1 - w]}."
+        room.game = None
+        return {}
     if kind == "bid":
         room.bid(me, data.get("bid"))
     elif kind == "play":

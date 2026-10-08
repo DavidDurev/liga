@@ -343,6 +343,8 @@ function renderGame() {
   if (cl) cl.onclick = () => act('claim');
   const ng = document.getElementById('new-game');
   if (ng) ng.onclick = () => act('new_game');
+  const tl = document.getElementById('to-lobby');
+  if (tl) tl.onclick = () => act('to_lobby');
   const ui = {
     end: () => {
       menuOpen = false;
@@ -411,7 +413,8 @@ function renderModal(g, myTeam, other) {
     const won = st.me !== null && g.winner === st.me % 2;
     footer = `<h2 style="text-align:center">${st.me === null ? teamLabel(g.winner) + ' печели!' : (won ? '🏆 Победа!' : 'Загуба')}</h2>
       <p style="text-align:center" class="muted">Краен резултат ${g.scores[myTeam]} : ${g.scores[other]}</p>
-      ${st.is_host ? '<button class="primary" id="new-game">Нова игра</button>' : '<p class="muted" style="text-align:center">Домакинът може да започне нова игра.</p>'}`;
+      ${st.is_host ? '<button class="primary" id="new-game">Нова игра</button>' : '<p class="muted" style="text-align:center">Домакинът може да започне нова игра.</p>'}
+      ${st.me !== null ? '<button class="ghost" id="to-lobby">Към лобито</button>' : ''}`;
   } else {
     footer = st.me !== null ? '<button class="primary" id="next-hand">Следващо раздаване</button>' : '';
   }
