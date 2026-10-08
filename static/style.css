@@ -388,6 +388,12 @@ footer.site-footer {
   .ticket-stub { width: 100%; flex-direction: row; gap: 8px; padding: 8px; border-left: none; border-top: 2px dashed rgba(16,32,26,0.35); }
   .ticket-stub::before, .ticket-stub::after { left: 50%; top: -8px; transform: translateX(-50%); }
   .ticket-stub::after { top: auto; bottom: -8px; }
+  /* без хоризонтален скрол на телефон: по-сбити таблици; ако пак не се събират – превъртат се в рамката си */
+  .panel { padding: 14px; overflow-x: auto; }
+  .scoreboard th, .scoreboard td { padding: 8px 6px; }
+  .scoreboard th { font-size: 0.7rem; }
+  .scoreboard td { font-size: 0.82rem; }
+  .score-input-row { flex-wrap: wrap; }
 }
 
 /* ---------- Избор след вход: лига или белот (карта като при входа) ---------- */

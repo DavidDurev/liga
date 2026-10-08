@@ -21,13 +21,11 @@
         <a href="{{ url_for('champions_view') }}" class="{{ 'active' if request.endpoint == 'champions_view' }}">Шампиони</a>
         <a href="{{ url_for('standings_view') }}" class="{{ 'active' if request.endpoint == 'standings_view' }}">Класиране</a>
         <a href="{{ url_for('history') }}" class="{{ 'active' if request.endpoint == 'history' }}">Моята история</a>
-        <a href="/belot/?name={{ current_user.username|urlencode }}">Белот</a>
         {% if current_user.is_admin %}
         <a href="{{ url_for('admin_dashboard') }}" class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') and request.endpoint != 'admin_users' }}">Админ</a>
         <a href="{{ url_for('admin_users') }}" class="{{ 'active' if request.endpoint == 'admin_users' }}">Потребители</a>
         {% endif %}
         <a href="{{ url_for('account') }}" class="{{ 'active' if request.endpoint == 'account' }}">Профил</a>
-        <span class="nav-user">{{ current_user.username }}</span>
         <a href="{{ url_for('logout') }}">Изход</a>
       </div>
       {% endif %}
