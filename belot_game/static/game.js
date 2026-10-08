@@ -12,6 +12,7 @@ let st = null, lastVersion = -1, mode = null, busy = false, inviteUrl = '';
 // На тъч екран първото докосване вдига картата, второто я играе – против случайни ходове.
 const TOUCH = matchMedia('(hover: none)').matches;
 let selected = null, menuOpen = false, sideOpen = false;
+let seenTrick = null;   // картите във взятката при предишното рисуване (null = още не е рисувано)
 
 function store(key, val) {
   try { if (val === undefined) return localStorage.getItem(key); localStorage.setItem(key, val); } catch (e) { return null; }
@@ -233,8 +234,19 @@ function renderGame() {
     </div>`;
   }).join('');
 
-  const trickHtml = g.trick.map(([seat, c]) =>
-    cardHtml(c, `t${rel(seat)} ${g.trick_win === seat ? 'win' : ''}`)).join('');
+  // Новохвърлените карти (които не са били на масата при предишното рисуване) излитат от играча
+  const trickKeys = g.trick.map(([s, c]) => s + ':' + c);
+  const fresh = seenTrick === null ? new Set() : new Set(trickKeys.filter(k => !seenTrick.has(k)));
+  seenTrick = new Set(trickKeys);
+  const tb = document.querySelector('.table')?.getBoundingClientRect() || {width: 800, height: 420};
+  const from = {0: [0, tb.height * 0.6], 1: [tb.width * 0.42, 0], 2: [0, -tb.height * 0.42], 3: [-tb.width * 0.42, 0]};
+  const trickHtml = g.trick.map(([seat, c]) => {
+    const p = rel(seat), win = g.trick_win === seat ? 'win' : '';
+    if (!fresh.has(seat + ':' + c)) return cardHtml(c, `t${p} ${win}`);
+    const [ox, oy] = from[p];
+    const spin = (Math.random() < 0.5 ? -1 : 1) * (300 + Math.random() * 120);
+    return cardHtml(c, `t${p} ${win} fly`, `--ox:${ox.toFixed(0)}px;--oy:${oy.toFixed(0)}px;--spin:${spin.toFixed(0)}deg`);
+  }).join('');
 
   const legal = new Set(g.legal);
   const myTurnPlay = g.phase === 'playing' && !g.announce && g.turn === st.me && g.trick.length < 4;

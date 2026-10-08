@@ -242,6 +242,10 @@ class Game:
             self._start_play()
             return
         self.turn = (seat + 1) % 4
+        # Който няма друг избор освен „пас“ (напр. партньорът му е обявил всичко коз),
+        # не бива да чака – пасува се автоматично.
+        if self.bid_options(self.turn) == ["pass"]:
+            self.bid(self.turn, "pass")
 
     def _start_play(self):
         self._deal_round([3])

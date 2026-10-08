@@ -152,11 +152,26 @@ input:focus { border-color: var(--accent); }
 .seat.pos1 .backs .back:first-child, .seat.pos3 .backs .back:first-child { margin-top: 0; }
 
 .trick { position: absolute; inset: 0; pointer-events: none; }
-.trick .card { position: absolute; left: 50%; top: 50%; transition: all .25s; }
-.trick .t0 { transform: translate(-50%, -10%); }
-.trick .t1 { transform: translate(15%, -55%) rotate(6deg); }
-.trick .t2 { transform: translate(-50%, -100%); }
-.trick .t3 { transform: translate(-115%, -45%) rotate(-6deg); }
+/* Мястото на всяка карта във взятката е в --fx/--fy/--fr, за да може анимацията да кацне точно там */
+.trick .card {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(var(--fx), var(--fy)) rotate(var(--fr));
+}
+.trick .t0 { --fx: -50%;  --fy: -10%;  --fr: 0deg; }
+.trick .t1 { --fx: 15%;   --fy: -55%;  --fr: 6deg; }
+.trick .t2 { --fx: -50%;  --fy: -100%; --fr: 0deg; }
+.trick .t3 { --fx: -115%; --fy: -45%;  --fr: -6deg; }
+/* Хвърлена карта: излита от играча (--ox/--oy), завърта се (--spin) и каца на мястото си */
+.trick .card.fly { animation: card-fly .5s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes card-fly {
+  from {
+    transform: translate(calc(var(--fx) + var(--ox)), calc(var(--fy) + var(--oy)))
+               rotate(calc(var(--fr) + var(--spin))) scale(.85);
+  }
+  70% { transform: translate(var(--fx), var(--fy)) rotate(calc(var(--fr) + var(--spin) * -0.04)) scale(1.06); }
+  to  { transform: translate(var(--fx), var(--fy)) rotate(var(--fr)) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .trick .card.fly { animation: none; } }
 .trick .win { box-shadow: 0 0 0 3px var(--accent), 0 4px 10px rgba(0,0,0,.4); }
 
 /* ---------- карти ---------- */
@@ -407,3 +422,5 @@ input:focus { border-color: var(--accent); }
 /* начално състояние, докато анимацията още не е тръгнала (без мигване в първия кадър) */
 .claim-fan { left: var(--sx); top: var(--sy); transform: translate(-50%, -50%) scale(.85); }
 .claim-hand, .claim-label, .claim-rest { opacity: 0; }
+/* летящите карти и ръката започват извън масата – да не предизвикват хоризонтален скрол */
+.table-wrap { overflow-x: clip; }
