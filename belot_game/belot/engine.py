@@ -123,10 +123,22 @@ def find_declarations(hand):
     return decls
 
 
-def round_points(points, contract):
-    q, r = divmod(points, 10)
-    threshold = {"NT": 5, "AT": 4}.get(contract, 6)
-    return q + (1 if r >= threshold else 0)
+# Закръгляне при делене на 10: (граница за отбора с по-малко, граница за отбора с повече).
+# Единиците от границата нагоре се закръглят нагоре. Така при 66:96 в боя излиза 7:9,
+# а при 134:124 във всичко коз – 13:13 (сумата се запазва: 16 / 26 / 26).
+ROUND_LIMITS = {"NT": (5, 5), "AT": (4, 5)}
+SUIT_ROUND_LIMITS = (6, 7)
+
+
+def round_pair(raw, contract):
+    """raw: точките на двата отбора; връща ги разделени на 10 и закръглени."""
+    low_limit, high_limit = ROUND_LIMITS.get(contract, SUIT_ROUND_LIMITS)
+    out = []
+    for t in (0, 1):
+        q, r = divmod(raw[t], 10)
+        limit = high_limit if raw[t] > raw[1 - t] else low_limit
+        out.append(q + (1 if r >= limit else 0))
+    return out
 
 
 RED_SUITS = {"H", "D"}
@@ -371,7 +383,7 @@ class Game:
 
         raw = [cards[t] + decl[t] for t in (0, 1)]
         bt, ot = team(self.bidder), 1 - team(self.bidder)
-        game_pts = [round_points(raw[t], c) for t in (0, 1)]
+        game_pts = round_pair(raw, c)
         total_pts = game_pts[0] + game_pts[1]
         result = [0, 0]
         note = ""
