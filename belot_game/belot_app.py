@@ -30,6 +30,7 @@ def inject_static_version():
 BOT_DELAY = 0.6          # сек. между ходовете на ботовете
 TRICK_PAUSE = 1.3        # сек. колко се вижда завършената взятка
 ANNOUNCE_TIME = 2.5      # сек. табела с играта след обявяването – дотогава никой не играе
+CLAIM_SHOW_TIME = 4.2    # сек. анимация „Свали картите“ – после се показват точките
 ROOM_TTL = 6 * 3600
 BOT_NAMES = ["Бот Пешо", "Бот Гошо", "Бот Мими", "Бот Тошо"]
 
@@ -47,6 +48,7 @@ class Room:
         self.version = 0
         self.last_action = time.time()
         self.announce_until = 0        # до кога се показва табелата с обявената игра
+        self.claim_show = None         # картите в момента на сваляне – за анимацията при всички
         self.lock = threading.Lock()
 
     def touch(self):
@@ -61,6 +63,19 @@ class Room:
 
     def announcing(self):
         return self.game is not None and self.game.phase == "playing" and time.time() < self.announce_until
+
+    def claim(self, seat):
+        g = self.game
+        hands = [sort_hand(h, g.contract) for h in g.hands]   # какво е имал всеки преди свалянето
+        g.claim(seat)
+        self.claim_show = {"id": self.version + 1, "seat": seat, "hands": hands, "start": time.time()}
+
+    def claiming(self):
+        """Данните за анимацията, докато тече (с колко секунди е напреднала), иначе None."""
+        cs = self.claim_show
+        if not cs or time.time() - cs["start"] >= CLAIM_SHOW_TIME:
+            return None
+        return {"id": cs["id"], "seat": cs["seat"], "hands": cs["hands"], "elapsed": time.time() - cs["start"]}
 
     def seat_of(self, token):
         for i, s in enumerate(self.seats):
@@ -117,6 +132,7 @@ class Room:
                 "legal": g.legal(me) if me is not None and not self.announcing() else [],
                 "can_claim": me is not None and not self.announcing() and g.can_claim(me),
                 "belots": g.belots,
+                "claim_show": self.claiming(),
                 "bid_options": g.bid_options(me) if me is not None else [],
                 "trick": g.trick, "last_trick": g.last_trick,
                 "trick_win": trick_winner(g.trick, g.contract)[0] if len(g.trick) == 4 else None,
@@ -283,8 +299,10 @@ def handle_action(room, token, kind, data):
             raise ValueError("Изчакай – показва се на какво се играе.")
         g.play(me, data.get("card"))
     elif kind == "claim":
-        g.claim(me)
+        room.claim(me)
     elif kind == "next_hand":
+        if room.claiming():
+            raise ValueError("Изчакай да се свалят картите.")
         g.next_hand()
     else:
         raise ValueError("Непознато действие.")

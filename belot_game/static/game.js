@@ -79,7 +79,7 @@ async function poll() {
 function apply(d) {
   st = d;
   // Прерисуваме и когато табелата с играта изчезне – тогава версията не се сменя
-  const key = d.version + (d.game && d.game.announce ? '+a' : '');
+  const key = d.version + (d.game && d.game.announce ? '+a' : '') + (d.game && d.game.claim_show ? '+c' : '');
   if (key === lastVersion && mode) return;
   lastVersion = key;
   render();
@@ -195,6 +195,7 @@ function belotVisible(g, seat) {
 }
 
 function statusText(g) {
+  if (g.claim_show) return `${esc(seatName(g.claim_show.seat))} свали картите!`;
   if (g.phase === 'bidding') {
     return g.turn === st.me ? 'Твой ред е да обявиш.' : `Обявява ${esc(seatName(g.turn))}…`;
   }
@@ -294,7 +295,7 @@ function renderGame() {
           ${st.me !== null ? '<button class="danger" data-ui="end">Прекрати играта</button>' : ''}
         </div>` : ''}
       </div>
-      <div class="table-wrap"><div class="table">${seatsHtml}<div class="trick">${trickHtml}</div>${banner}</div></div>
+      <div class="table-wrap"><div class="table ${g.claim_show ? 'claim-shake' : ''}" ${g.claim_show ? `style="--e:${claimElapsed(g.claim_show).toFixed(2)}s"` : ''}>${seatsHtml}<div class="trick">${trickHtml}</div>${banner}${claimAnimation(g)}</div></div>
       <div class="hand-area">
         <div class="status-line">${statusText(g)}</div>
         ${g.can_claim ? '<button class="primary claim-btn" id="claim">Свали картите – всички ръце са твои</button>' : ''}
@@ -351,8 +352,45 @@ document.addEventListener('click', e => {
   if (menuOpen && !e.target.closest('.menu')) { menuOpen = false; if (st && st.game) renderGame(); }
 });
 
+// ---------- анимация „Свали картите“ ----------
+// Ръка грабва картите на свалилия и ги тръшва в средата, после се обръщат картите на другите.
+// Времената са в CSS; --e казва колко е напреднала анимацията, за да не започва отначало
+// при прерисуване или при отваряне на страницата по средата.
+const claimStarts = {};
+const SEAT_SPOT = {0: ['50%', '86%'], 1: ['86%', '50%'], 2: ['50%', '14%'], 3: ['14%', '50%']};
+const HAND_FROM = {0: ['50%', '125%'], 1: ['125%', '50%'], 2: ['50%', '-25%'], 3: ['-25%', '50%']};
+const HAND_TURN = {0: '0deg', 1: '-90deg', 2: '180deg', 3: '90deg'};   // ръката идва откъм играча
+const REST_SPOT = {1: ['77%', '50%'], 2: ['50%', '19%'], 3: ['23%', '50%'], 0: ['50%', '81%']};
+
+function claimElapsed(cs) {
+  if (!(cs.id in claimStarts)) claimStarts[cs.id] = performance.now() - cs.elapsed * 1000;
+  return (performance.now() - claimStarts[cs.id]) / 1000;
+}
+
+function claimAnimation(g) {
+  const cs = g.claim_show;
+  if (!cs) return '';
+  const e = claimElapsed(cs).toFixed(2);
+  const p = rel(cs.seat);
+  const [sx, sy] = SEAT_SPOT[p], [hx, hy] = HAND_FROM[p];
+  const mine = cs.hands[cs.seat].map(c => cardHtml(c)).join('');
+  const rest = [0, 1, 2, 3].filter(s => s !== cs.seat && cs.hands[s].length).map((s, i) => {
+    const [rx, ry] = REST_SPOT[rel(s)];
+    return `<div class="claim-rest" style="left:${rx};top:${ry};--i:${i}">${cs.hands[s].map(c => cardHtml(c, 'small')).join('')}</div>`;
+  }).join('');
+  return `<div class="claim-anim" style="--e:${e}s;--sx:${sx};--sy:${sy};--hx:${hx};--hy:${hy};--hr:${HAND_TURN[p]}">
+    <div class="claim-fan">
+      <div class="claim-label">${esc(seatName(cs.seat))} свали картите!</div>
+      <div class="claim-cards">${mine}</div>
+    </div>
+    <div class="claim-hand" aria-hidden="true">✋</div>
+    ${rest}
+  </div>`;
+}
+
 function renderModal(g, myTeam, other) {
   const r = g.hand_result;
+  if (g.claim_show) return '';            // точките – след анимацията
   if (!r || (g.phase !== 'hand_over' && g.phase !== 'game_over')) return '';
   const row = (label, arr) => `<tr><td>${label}</td><td class="us">${arr[myTeam]}</td><td class="them">${arr[other]}</td></tr>`;
   const declNote = [myTeam, other].map(t => r.decl_text[t].length ? `${teamLabel(t)}: ${r.decl_text[t].map(esc).join(', ')}` : '').filter(Boolean).join('<br>');

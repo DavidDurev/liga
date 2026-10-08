@@ -333,3 +333,77 @@ input:focus { border-color: var(--accent); }
 /* ---------- бутон „Свали картите“ ---------- */
 .claim-btn { padding: 10px 18px; font-size: 15px; animation: claim-pulse 1.4s ease-in-out infinite; }
 @keyframes claim-pulse { 50% { box-shadow: 0 0 0 6px rgba(240, 180, 60, .25); } }
+
+/* ---------- анимация „Свали картите“ ----------
+   0–0.7 с ръката отива до картите; 0.7–1.3 с ги носи към средата; 1.3 с ги тръшва (масата
+   трепва); от 1.9 с картите на другите се обръщат една по една. --e = колко е напреднала. */
+.claim-anim { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
+.claim-fan {
+  position: absolute; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  animation: claim-fan 2s ease-in-out calc(0s - var(--e)) both;
+}
+.claim-cards { display: flex; }
+.claim-cards .card { margin-left: -40px; }
+.claim-cards .card:first-child { margin-left: 0; }
+.claim-label {
+  background: var(--gold); color: #2a1a00; font-weight: 800; font-size: 17px; white-space: nowrap;
+  padding: 5px 14px; border-radius: 999px; box-shadow: 0 4px 14px rgba(0,0,0,.45);
+  animation: claim-pop .3s ease-out calc(1.4s - var(--e)) both;
+}
+.claim-hand {
+  position: absolute; font-size: 92px; line-height: 1; z-index: 7;
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,.5));
+  animation: claim-hand 2s ease-in-out calc(0s - var(--e)) both;
+}
+.claim-rest {
+  position: absolute; display: flex;
+  animation: claim-flip .45s ease-out calc(1.9s + var(--i) * .25s - var(--e)) both;
+}
+.claim-rest .card { margin-left: -26px; }
+.claim-rest .card:first-child { margin-left: 0; }
+.table.claim-shake { animation: claim-shake .3s ease-out calc(1.3s - var(--e)) both; }
+
+@keyframes claim-fan {
+  0%, 35% { left: var(--sx); top: var(--sy); transform: translate(-50%, -50%) scale(.85); }
+  65%     { left: 50%; top: 44%; transform: translate(-50%, -50%) scale(1.15) rotate(-3deg); }
+  72%     { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(.95); }
+  80%, 100% { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes claim-hand {
+  0%   { left: var(--hx); top: var(--hy); opacity: 0; transform: translate(-50%, -50%) rotate(calc(var(--hr) - 25deg)); }
+  12%  { opacity: 1; }
+  35%  { left: var(--sx); top: var(--sy); transform: translate(-50%, -50%) rotate(var(--hr)); }
+  65%  { left: 50%; top: 44%; opacity: 1; transform: translate(-50%, -50%) rotate(var(--hr)) scale(1.1); }
+  72%  { left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(var(--hr)) scale(.95); }
+  85%  { left: 50%; top: 50%; opacity: 1; transform: translate(-50%, -50%) rotate(var(--hr)) scale(1); }
+  100% { left: var(--hx); top: var(--hy); opacity: 0; transform: translate(-50%, -50%) rotate(calc(var(--hr) + 15deg)); }
+}
+}
+@keyframes claim-pop {
+  from { opacity: 0; transform: scale(.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes claim-flip {
+  from { opacity: 0; transform: translate(-50%, -50%) rotateY(90deg) scale(.8); }
+  to   { opacity: 1; transform: translate(-50%, -50%) rotateY(0) scale(1); }
+}
+@keyframes claim-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 3px); }
+  40% { transform: translate(5px, -2px); }
+  60% { transform: translate(-3px, 2px); }
+  80% { transform: translate(2px, -1px); }
+}
+@media (max-width: 560px) {
+  .claim-cards .card { margin-left: -30px; }
+  .claim-rest .card { margin-left: -30px; }
+  .claim-hand { font-size: 64px; }
+  .claim-label { font-size: 14px; padding: 4px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .claim-fan, .claim-hand, .claim-label, .claim-rest, .table.claim-shake { animation-duration: .01s; }
+  .claim-hand { display: none; }
+}
+/* начално състояние, докато анимацията още не е тръгнала (без мигване в първия кадър) */
+.claim-fan { left: var(--sx); top: var(--sy); transform: translate(-50%, -50%) scale(.85); }
+.claim-hand, .claim-label, .claim-rest { opacity: 0; }
